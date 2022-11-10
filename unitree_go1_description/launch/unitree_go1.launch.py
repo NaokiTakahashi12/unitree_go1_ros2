@@ -7,11 +7,13 @@ from ament_index_python.packages import get_package_share_directory
 import launch
 import launch_ros
 
+
 def generate_launch_description():
     return launch.LaunchDescription(
         generate_declare_launch_arguments()
         + generate_launch_nodes()
     )
+
 
 def generate_declare_launch_arguments():
     this_pkg_share_dir = get_package_share_directory('unitree_go1_description')
@@ -19,81 +21,82 @@ def generate_declare_launch_arguments():
     return [
         launch.actions.DeclareLaunchArgument(
             'namespace',
-            default_value = [''],
-            description = 'Namespace (string)'
+            default_value=[''],
+            description='Namespace (string)'
         ),
         launch.actions.DeclareLaunchArgument(
             'robot_model_file',
-            default_value = ['unitree_go1.urdf.xacro'],
-            description = 'Robot model file (string)'
+            default_value=['unitree_go1.urdf.xacro'],
+            description='Robot model file (string)'
         ),
         launch.actions.DeclareLaunchArgument(
             'robot_model_path',
-            default_value = [
+            default_value=[
                 os.path.join(
                     this_pkg_share_dir,
                     'urdf'
                 )
             ],
-            description = 'Robot model file path (string)'
+            description='Robot model file path (string)'
         ),
         launch.actions.DeclareLaunchArgument(
             'joint_state_publisher_config_file',
-            default_value = [
+            default_value=[
                 os.path.join(
                     this_pkg_share_dir,
                     'config',
                     'joint_state.yaml'
                 )
             ],
-            description = 'Joint state publisher configulation file of full path (string)'
+            description='Joint state publisher configulation file of full path (string)'
         ),
         launch.actions.DeclareLaunchArgument(
             'use_sim_time',
-            default_value = ['false'],
-            description = 'Use simulation time (boolean)'
+            default_value=['false'],
+            description='Use simulation time (boolean)'
         ),
         launch.actions.DeclareLaunchArgument(
             'ros2_control_config_file',
-            default_value = [
+            default_value=[
                 os.path.join(
                     this_pkg_share_dir,
                     'config',
                     'ros2_controllers.yaml'
                 )
             ],
-            description = 'ros2 controller config file path (string)'
+            description='ros2 controller config file path (string)'
         ),
         launch.actions.DeclareLaunchArgument(
             'use_real_hardware',
-            default_value = ['true'],
-            description = 'Using real hardware control (boolean)',
+            default_value=['true'],
+            description='Using real hardware control (boolean)',
         ),
         launch.actions.DeclareLaunchArgument(
             'ignition_gazebo',
-            default_value = ['false'],
-            description = 'Using ignition gazebo (boolean)',
+            default_value=['false'],
+            description='Using ignition gazebo (boolean)',
         ),
         launch.actions.DeclareLaunchArgument(
             'use_rviz',
-            default_value = ['false'],
-            description = 'Using rviz2 (boolean)'
+            default_value=['false'],
+            description='Using rviz2 (boolean)'
         ),
         launch.actions.DeclareLaunchArgument(
             'rviz_config_file',
-            default_value = [
+            default_value=[
                 os.path.join(
                     this_pkg_share_dir,
                     'rviz',
                     'unitree_go1.rviz'
                 )
             ],
-            condition = launch.conditions.IfCondition(
+            condition=launch.conditions.IfCondition(
                 launch.substitutions.LaunchConfiguration('use_rviz')
             ),
-            description = 'RViz2 config file of full path (string)'
+            description='RViz2 config file of full path (string)'
         )
     ]
+
 
 def generate_launch_nodes():
     # TODO Output parameter from declare launch arguemnt
@@ -124,91 +127,91 @@ def generate_launch_nodes():
     }
 
     exit_event = launch.actions.EmitEvent(
-        event = launch.events.Shutdown()
+        event=launch.events.Shutdown()
     )
 
     return [
-        launch.actions.GroupAction(actions = [
+        launch.actions.GroupAction(actions=[
             launch_ros.actions.PushRosNamespace(
-                namespace = launch.substitutions.LaunchConfiguration('namespace')
+                namespace=launch.substitutions.LaunchConfiguration('namespace')
             ),
             launch_ros.actions.Node(
-                package = 'robot_state_publisher',
-                executable = 'robot_state_publisher',
-                name = 'robot_state_publisher',
-                output = output,
-                parameters = [
+                package='robot_state_publisher',
+                executable='robot_state_publisher',
+                name='robot_state_publisher',
+                output=output,
+                parameters=[
                     use_sim_time,
                     robot_description
                 ],
-                on_exit = exit_event
+                on_exit=exit_event
             ),
             launch_ros.actions.Node(
-                package = 'joint_state_publisher',
-                executable = 'joint_state_publisher',
-                name = 'joint_state_merger',
-                output = output,
-                parameters = [
+                package='joint_state_publisher',
+                executable='joint_state_publisher',
+                name='joint_state_merger',
+                output=output,
+                parameters=[
                     use_sim_time,
                     launch.substitutions.LaunchConfiguration(
                         'joint_state_publisher_config_file'
                     )
                 ],
-                on_exit = exit_event
+                on_exit=exit_event
             ),
             launch_ros.actions.Node(
-                package = 'controller_manager',
-                executable = 'ros2_control_node',
-                output = output,
-                parameters = [
+                package='controller_manager',
+                executable='ros2_control_node',
+                output=output,
+                parameters=[
                     use_sim_time,
                     robot_description,
                     launch.substitutions.LaunchConfiguration(
                         'ros2_control_config_file'
                     )
                 ],
-                remappings = [
+                remappings=[
                     ('joint_states', 'joint_state_broadcaster/joint_states')
                 ],
-                condition = launch.conditions.UnlessCondition(
+                condition=launch.conditions.UnlessCondition(
                     launch.substitutions.LaunchConfiguration('ignition_gazebo')
                 )
             ),
             launch_ros.actions.Node(
-                package = 'controller_manager',
-                executable = 'spawner',
-                output = output,
-                arguments = [
+                package='controller_manager',
+                executable='spawner',
+                output=output,
+                arguments=[
                     'joint_state_broadcaster',
                     '--controller-manager',
                     'controller_manager'
                 ]
             ),
             launch_ros.actions.Node(
-                package = 'controller_manager',
-                executable = 'spawner',
-                output = output,
-                arguments = [
+                package='controller_manager',
+                executable='spawner',
+                output=output,
+                arguments=[
                     'joint_trajectory_controller',
                     '--controller-manager',
                     'controller_manager'
                 ]
             ),
             launch_ros.actions.Node(
-                package = 'rviz2',
-                executable = 'rviz2',
-                name = 'rviz2',
-                output = output,
-                parameters = [
+                package='rviz2',
+                executable='rviz2',
+                name='rviz2',
+                output=output,
+                parameters=[
                     use_sim_time,
                 ],
-                arguments = [
+                arguments=[
                     '-d',
                     launch.substitutions.LaunchConfiguration(
                         'rviz_config_file'
                     )
                 ],
-                condition = launch.conditions.IfCondition(
+                condition=launch.conditions.IfCondition(
                     launch.substitutions.LaunchConfiguration(
                         'use_rviz'
                     )
@@ -216,4 +219,3 @@ def generate_launch_nodes():
             )
         ])
     ]
-
