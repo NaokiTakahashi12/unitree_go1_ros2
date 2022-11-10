@@ -6,27 +6,19 @@
   <!-- Enable depth camera simulation for ignition gazebo -->
   <xacro:arg name="enable_sensors_plugin" default="true"/>
   <xacro:arg name="enable_low_resolution_depth" default="true"/>
-  <xacro:include filename="$(find go1_description)/models/urdf/const.xacro"/>
-  <xacro:include filename="$(find go1_description)/models/urdf/materials.xacro"/>
+  <xacro:include filename="$(find unitree_go1_description)/urdf/const.xacro"/>
+  <xacro:include filename="$(find unitree_go1_description)/urdf/materials.xacro"/>
   <xacro:if value="$(arg use_gazebo)">
-    <xacro:include filename="$(find go1_description)/models/urdf/gazebo.xacro"/>
+    <xacro:include filename="$(find unitree_go1_description)/urdf/gazebo.xacro"/>
   </xacro:if>
-  <xacro:include filename="$(find go1_description)/models/urdf/leg.xacro"/>
-  <xacro:include filename="$(find go1_description)/models/urdf/depthCamera.xacro"/>
-  <xacro:include filename="$(find go1_description)/models/urdf/ultraSound.xacro"/>
-  <xacro:include filename="$(find go1_description)/models/urdf/ros2_control.xacro"/>
+  <xacro:include filename="$(find unitree_go1_description)/urdf/leg.xacro"/>
+  <xacro:include filename="$(find unitree_go1_description)/urdf/depthCamera.xacro"/>
+  <xacro:include filename="$(find unitree_go1_description)/urdf/ultraSound.xacro"/>
+  <xacro:include filename="$(find unitree_go1_description)/urdf/ros2_control.xacro"/>
   <!-- Rollover Protection mode will add an additional stick on the top, use "true" or "false" to switch it. -->
   <xacro:property name="rolloverProtection" value="false"/>
   <!-- Debug mode will hung up the robot, use "true" or "false" to switch it. -->
   <xacro:arg name="DEBUG" default="false"/>
-  <xacro:if value="$(arg DEBUG)">
-    <link name="world"/>
-    <joint name="base_static_joint" type="fixed">
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <parent link="world"/>
-      <child link="base_link"/>
-    </joint>
-  </xacro:if>
   <link name="base_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -44,7 +36,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://go1_description/models/meshes/trunk.dae" scale="1 1 1"/>
+        <mesh filename="package://unitree_go1_description/meshes/trunk.dae" scale="1 1 1"/>
       </geometry>
       <material name="silver"/>
     </visual>

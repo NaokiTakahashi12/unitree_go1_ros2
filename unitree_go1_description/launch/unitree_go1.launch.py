@@ -14,7 +14,7 @@ def generate_launch_description():
     )
 
 def generate_declare_launch_arguments():
-    this_pkg_share_dir = get_package_share_directory('go1_description')
+    this_pkg_share_dir = get_package_share_directory('unitree_go1_description')
 
     return [
         launch.actions.DeclareLaunchArgument(
@@ -32,7 +32,6 @@ def generate_declare_launch_arguments():
             default_value = [
                 os.path.join(
                     this_pkg_share_dir,
-                    'models',
                     'urdf'
                 )
             ],

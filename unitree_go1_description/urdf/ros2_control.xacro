@@ -3,7 +3,7 @@
   <xacro:arg name="use_real_hardware" default="true"/>
   <xacro:arg name="use_effort_command_interface" default="false"/>
   <xacro:unless value="$(arg use_real_hardware)">
-    <xacro:arg name="ros2_control_config_file" default="$(find go1_description)/config/ros2_controllers.yaml"/>
+    <xacro:arg name="ros2_control_config_file" default="$(find unitree_go1_description)/config/ros2_controllers.yaml"/>
     <xacro:arg name="joint_state_broadcaster_node_name" default="joint_state_broadcaster"/>
   </xacro:unless>
   <ros2_control name="unitree_go1_control_system" type="system">
