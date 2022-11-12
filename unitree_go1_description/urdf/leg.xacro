@@ -1,4 +1,7 @@
 <?xml version="1.0"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:include filename="$(find unitree_go1_description)/urdf/transmission.xacro"/>
   <xacro:macro name="leg" params="name mirror mirror_dae front_hind front_hind_dae *origin">
