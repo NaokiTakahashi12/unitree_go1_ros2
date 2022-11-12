@@ -1,0 +1,265 @@
+<?xml version="1.0"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="use_real_hardware" default="true"/>
+  <xacro:arg name="use_effort_command_interface" default="false"/>
+  <xacro:unless value="$(arg use_real_hardware)">
+    <xacro:arg name="ros2_control_config_file" default="$(find unitree_go1_description)/config/ros2_controllers.yaml"/>
+    <xacro:arg name="joint_state_broadcaster_node_name" default="joint_state_broadcaster"/>
+  </xacro:unless>
+  <ros2_control name="unitree_go1_control_system" type="system">
+    <hardware>
+      <xacro:if value="$(arg use_real_hardware)">
+        <!-- TODO Not implemented -->
+      </xacro:if>
+      <xacro:unless value="$(arg use_real_hardware)">
+        <xacro:if value="$(arg ignition_gazebo)">
+          <plugin>ign_ros2_control/IgnitionSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="$(arg ignition_gazebo)">
+          <plugin>fake_components/GenericSystem</plugin>
+        </xacro:unless>
+      </xacro:unless>
+    </hardware>
+    <joint name="fr_hip_joint">
+      <command_interface name="position">
+        <param name="min">${hip_min*PI/180}</param>
+        <param name="max">${hip_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-hip_velocity_max}</param>
+        <param name="max">${hip_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-hip_torque_max}</param>
+          <param name="max">${hip_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="fr_thigh_joint">
+      <command_interface name="position">
+        <param name="min">${thigh_min*PI/180}</param>
+        <param name="max">${thigh_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-thigh_velocity_max}</param>
+        <param name="max">${thigh_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-thigh_torque_max}</param>
+          <param name="max">${thigh_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="fr_calf_joint">
+      <command_interface name="position">
+        <param name="min">${calf_min*PI/180}</param>
+        <param name="max">${calf_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-calf_velocity_max}</param>
+        <param name="max">${calf_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-calf_torque_max}</param>
+          <param name="max">${calf_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="fl_hip_joint">
+      <command_interface name="position">
+        <param name="min">${hip_min*PI/180}</param>
+        <param name="max">${hip_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-hip_velocity_max}</param>
+        <param name="max">${hip_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-hip_torque_max}</param>
+          <param name="max">${hip_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="fl_thigh_joint">
+      <command_interface name="position">
+        <param name="min">${thigh_min*PI/180}</param>
+        <param name="max">${thigh_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-thigh_velocity_max}</param>
+        <param name="max">${thigh_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-thigh_torque_max}</param>
+          <param name="max">${thigh_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="fl_calf_joint">
+      <command_interface name="position">
+        <param name="min">${calf_min*PI/180}</param>
+        <param name="max">${calf_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-calf_velocity_max}</param>
+        <param name="max">${calf_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-calf_torque_max}</param>
+          <param name="max">${calf_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="rr_hip_joint">
+      <command_interface name="position">
+        <param name="min">${hip_min*PI/180}</param>
+        <param name="max">${hip_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-hip_velocity_max}</param>
+        <param name="max">${hip_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-hip_torque_max}</param>
+          <param name="max">${hip_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="rr_thigh_joint">
+      <command_interface name="position">
+        <param name="min">${thigh_min*PI/180}</param>
+        <param name="max">${thigh_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-thigh_velocity_max}</param>
+        <param name="max">${thigh_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-thigh_torque_max}</param>
+          <param name="max">${thigh_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="rr_calf_joint">
+      <command_interface name="position">
+        <param name="min">${calf_min*PI/180}</param>
+        <param name="max">${calf_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-calf_velocity_max}</param>
+        <param name="max">${calf_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-calf_torque_max}</param>
+          <param name="max">${calf_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="rl_hip_joint">
+      <command_interface name="position">
+        <param name="min">${hip_min*PI/180}</param>
+        <param name="max">${hip_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-hip_velocity_max}</param>
+        <param name="max">${hip_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-hip_torque_max}</param>
+          <param name="max">${hip_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="rl_thigh_joint">
+      <command_interface name="position">
+        <param name="min">${thigh_min*PI/180}</param>
+        <param name="max">${thigh_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-thigh_velocity_max}</param>
+        <param name="max">${thigh_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-thigh_torque_max}</param>
+          <param name="max">${thigh_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="rl_calf_joint">
+      <command_interface name="position">
+        <param name="min">${calf_min*PI/180}</param>
+        <param name="max">${calf_max*PI/180}</param>
+      </command_interface>
+      <command_interface name="velocity">
+        <param name="min">${-calf_velocity_max}</param>
+        <param name="max">${calf_velocity_max}</param>
+      </command_interface>
+      <xacro:if value="$(arg use_effort_command_interface)">
+        <command_interface name="effort">
+          <param name="min">${-calf_torque_max}</param>
+          <param name="max">${calf_torque_max}</param>
+        </command_interface>
+      </xacro:if>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </ros2_control>
+  <xacro:unless value="$(arg use_real_hardware)">
+    <gazebo>
+      <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+        <parameters>$(arg ros2_control_config_file)</parameters>
+        <ros>
+          <remapping>joint_states:=$(arg joint_state_broadcaster_node_name)/joint_states</remapping>
+        </ros>
+      </plugin>
+    </gazebo>
+  </xacro:unless>
+</robot>
