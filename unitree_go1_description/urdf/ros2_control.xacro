@@ -16,7 +16,12 @@
       </xacro:if>
       <xacro:unless value="$(arg use_real_hardware)">
         <xacro:if value="$(arg ignition_gazebo)">
-          <plugin>ign_ros2_control/IgnitionSystem</plugin>
+          <xacro:unless value="$(arg ign_compatible)">
+            <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+          </xacro:unless>
+          <xacro:if value="$(arg ign_compatible)">
+            <plugin>ign_ros2_control/IgnitionSystem</plugin>
+          </xacro:if>
         </xacro:if>
         <xacro:unless value="$(arg ignition_gazebo)">
           <plugin>fake_components/GenericSystem</plugin>
@@ -254,12 +259,22 @@
   </ros2_control>
   <xacro:unless value="$(arg use_real_hardware)">
     <gazebo>
-      <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
-        <parameters>$(arg ros2_control_config_file)</parameters>
-        <ros>
-          <remapping>joint_states:=$(arg joint_state_broadcaster_node_name)/joint_states</remapping>
-        </ros>
-      </plugin>
+      <xacro:unless value="$(arg ign_compatible)">
+        <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+          <parameters>$(arg ros2_control_config_file)</parameters>
+          <ros>
+            <remapping>joint_states:=$(arg joint_state_broadcaster_node_name)/joint_states</remapping>
+          </ros>
+        </plugin>
+      </xacro:unless>
+      <xacro:if value="$(arg ign_compatible)">
+        <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+          <parameters>$(arg ros2_control_config_file)</parameters>
+          <ros>
+            <remapping>joint_states:=$(arg joint_state_broadcaster_node_name)/joint_states</remapping>
+          </ros>
+        </plugin>
+      </xacro:if>
     </gazebo>
   </xacro:unless>
 </robot>

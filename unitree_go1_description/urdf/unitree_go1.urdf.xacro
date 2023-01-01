@@ -6,6 +6,7 @@
   <xacro:arg name="use_gazebo" default="true"/>
   <xacro:arg name="use_ros2_control" default="true"/>
   <xacro:arg name="ignition_gazebo" default="true"/>
+  <xacro:arg name="ign_compatible" default="false"/>
   <!-- Enable depth camera simulation for ignition gazebo -->
   <xacro:arg name="enable_sensors_plugin" default="true"/>
   <xacro:arg name="enable_low_resolution_depth" default="true"/>

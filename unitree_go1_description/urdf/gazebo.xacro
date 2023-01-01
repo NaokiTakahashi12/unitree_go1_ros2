@@ -251,7 +251,7 @@
   </xacro:macro>
   <xacro:macro name="depth_camera_gazebo_configulation" params="name">
     <gazebo reference="camera_${name}">
-      <sensor name="camera_${name}_camera" type="depth">
+      <sensor name="camera_${name}_camera" type="rgbd_camera">
         <update_rate>16</update_rate>
         <camera>
           <horizontal_fov>2.094</horizontal_fov>

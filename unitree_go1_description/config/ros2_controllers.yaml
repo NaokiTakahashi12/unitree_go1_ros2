@@ -1,6 +1,6 @@
 controller_manager:
   ros__parameters:
-    update_rate: 10
+    update_rate: 500
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
     joint_trajectory_controller:
@@ -8,6 +8,10 @@ controller_manager:
 
 joint_trajectory_controller:
   ros__parameters:
+    open_loop_control: false
+    state_publish_rate: 450.0
+    acrion_monitor_rate: 450.0
+    allow_partial_joint_goal: false
     command_interfaces:
       - position
     state_interfaces:

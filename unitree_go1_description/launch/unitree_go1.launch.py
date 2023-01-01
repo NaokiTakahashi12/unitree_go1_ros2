@@ -134,6 +134,19 @@ def generate_launch_nodes():
             'use_sim_time'
         )
     }
+
+    gz_version_env_name = 'IGNITION_VERSION'
+    ign_compatible = ''
+
+    if os.getenv(gz_version_env_name) is None:
+        gz_version_env_name = 'GZ_VERSION'
+        if os.getenv(gz_version_env_name) is None:
+            raise KeyError('Please export ' + gz_version_env_name)
+    if os.getenv(gz_version_env_name) == 'garden':
+        ign_compatible = 'ign_compatible:=false'
+    else:
+        ign_compatible = 'ign_compatible:=true'
+
     robot_description = {
         'robot_description': launch.substitutions.Command([
             'xacro ',
@@ -143,6 +156,7 @@ def generate_launch_nodes():
             launch.substitutions.LaunchConfiguration('ignition_gazebo'),
             ' ros2_control_config_file:=',
             launch.substitutions.LaunchConfiguration('ros2_control_config_file'),
+            ' ', ign_compatible,
             ' ',
             urdf_file
         ])
