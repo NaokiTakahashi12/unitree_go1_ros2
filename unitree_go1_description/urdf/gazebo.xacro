@@ -270,7 +270,7 @@
             </image>
           </xacro:unless>
           <clip>
-            <near>0.1</near>
+            <near>0.15</near>
             <far>5</far>
           </clip>
           <noise>
