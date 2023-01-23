@@ -22,5 +22,12 @@ install(
   DESTINATION
     "share/${PROJECT_NAME}"
 )
+if(DEFINED ENV{GZ_VERSION})
+    ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.gz.dsv.in")
+elseif(DEFINED ENV{IGN_VERSION})
+    ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.ign.dsv.in")
+else()
+    message(WARNING "Not defined GZ_VERSION or IGN_VERSION")
+endif()
 
 ament_package()
