@@ -1,11 +1,11 @@
-#include <unitree_go1_bridge/communicator.hpp>
+#include <unitree_go1_bridge/control_communicator.hpp>
 
 #include <iostream>
 
 
 namespace unitree_go1_bridge
 {
-Communicator::Communicator()
+ControlCommunicator::ControlCommunicator()
 : m_control_level(unitree_legged_sdk::LOWLEVEL),
   m_local_port(static_cast<uint16_t>(8090)),
   m_target_port(static_cast<uint16_t>(unitree_legged_sdk::UDP_SERVER_PORT)),
@@ -26,7 +26,7 @@ Communicator::Communicator()
   enableScreenOut();
 }
 
-Communicator::~Communicator()
+ControlCommunicator::~ControlCommunicator()
 {
   ignoreScreenOut();
   if(m_unitree_udp)
@@ -40,7 +40,7 @@ Communicator::~Communicator()
   enableScreenOut();
 }
 
-void Communicator::send(Command command)
+void ControlCommunicator::send(Command command)
 {
   State state;
   m_unitree_udp->GetRecv(state);
@@ -61,24 +61,24 @@ void Communicator::send(Command command)
   m_unitree_udp->SetSend(command);
 }
 
-void Communicator::receive()
+void ControlCommunicator::receive()
 {
   m_unitree_udp->Recv();
 }
 
 //! @param [out] received_state
-void Communicator::receive(State &received_state)
+void ControlCommunicator::receive(State &received_state)
 {
   receive();
   m_unitree_udp->GetRecv(received_state);
 }
 
-void Communicator::ignoreScreenOut()
+void ControlCommunicator::ignoreScreenOut()
 {
   std::cout.setstate(std::ios_base::failbit);
 }
 
-void Communicator::enableScreenOut()
+void ControlCommunicator::enableScreenOut()
 {
   std::cout.clear();
 }

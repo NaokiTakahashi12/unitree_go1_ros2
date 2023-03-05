@@ -11,14 +11,14 @@ namespace unitree_go1_bridge
 {
 namespace unitree_legged_sdk = UNITREE_LEGGED_SDK;
 
-class Communicator
+class ControlCommunicator
 {
 public:
   using Command = unitree_legged_sdk::LowCmd;
   using State = unitree_legged_sdk::LowState;
 
-  Communicator();
-  ~Communicator();
+  ControlCommunicator();
+  ~ControlCommunicator();
 
   void send(Command);
 
