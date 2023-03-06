@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.15)
 project(unitree_go1_bridge)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -6,10 +6,56 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
+find_package(UnitreeLeggedSDK REQUIRED)
+
+message(${UnitreeLeggedSDK_LIBRARY})
+
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+
+ament_auto_find_build_dependencies()
+
+add_library(unitree_go1_communicator SHARED)
+target_sources(unitree_go1_communicator
+  PUBLIC
+    src/control_communicator.cpp
+    src/utility.cpp
+)
+target_include_directories(unitree_go1_communicator
+  PUBLIC
+    include
+)
+target_link_libraries(unitree_go1_communicator
+  PUBLIC
+    UnitreeLeggedSDK::UnitreeLeggedSDK
+    ${UnitreeLeggedSDK_LIBRARY}
+)
+set_property(
+  TARGET unitree_go1_communicator
+  PROPERTY
+    POSITION_INDEPENDENT_CODE ON
+)
+
+ament_auto_add_library(unitree_go1_bridge SHARED
+  src/unitree_go1_bridge_node.cpp
+)
+target_link_libraries(unitree_go1_bridge
+  unitree_go1_communicator
+  ${UnitreeLeggedSDK_LIBRARY}
+)
+rclcpp_components_register_node(unitree_go1_bridge
+  PLUGIN "unitree_go1_bridge::UnitreeGo1BridgeNode"
+  EXECUTABLE unitree_go1_bridge_node
+)
+
+install(
+  TARGETS
+    unitree_go1_communicator
+    unitree_go1_bridge
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
