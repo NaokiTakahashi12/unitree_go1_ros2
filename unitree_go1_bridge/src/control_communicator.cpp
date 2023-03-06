@@ -1,6 +1,9 @@
 #include <unitree_go1_bridge/control_communicator.hpp>
 
 #include <iostream>
+#include <stdexcept>
+
+#include <unitree_go1_bridge/utility.hpp>
 
 
 namespace unitree_go1_bridge
@@ -24,6 +27,12 @@ ControlCommunicator::ControlCommunicator()
     unitree_legged_sdk::LeggedType::Go1
   );
   enableScreenOut();
+
+  m_state = std::make_unique<State>();
+
+  m_command = std::make_unique<Command>();
+  utility::zeroResetLowCommand(*m_command);
+  m_unitree_udp->InitCmdData(*m_command);
 }
 
 ControlCommunicator::~ControlCommunicator()
@@ -40,37 +49,48 @@ ControlCommunicator::~ControlCommunicator()
   enableScreenOut();
 }
 
-void ControlCommunicator::send(Command command)
+void ControlCommunicator::setMotorCommand(const MotorCommand &motor_command, const unsigned int motor_index)
 {
-  State state;
-  m_unitree_udp->GetRecv(state);
+  if(motor_index > 20)
+  {
+    throw std::out_of_range("Please set motor index is 0 <= index <= 19");
+  }
+  m_command->motorCmd[motor_index] = motor_command;
+}
+
+void ControlCommunicator::send()
+{
+  m_unitree_udp->GetRecv(*m_state);
 
   if(not m_unitree_safety)
   {
     throw std::runtime_error("unitree safety is null");
   }
   const auto protect_result = m_unitree_safety->PowerProtect(
-    command,
-    state,
+    *m_command,
+    *m_state,
     1
   );
   if(protect_result < 0)
   {
     throw std::runtime_error("Error of unitree safety");
   }
-  m_unitree_udp->SetSend(command);
-}
-
-void ControlCommunicator::receive()
-{
-  m_unitree_udp->Recv();
+  m_unitree_udp->SetSend(*m_command);
+  m_unitree_udp->Send();
 }
 
 //! @param [out] received_state
 void ControlCommunicator::receive(State &received_state)
 {
-  receive();
+  m_unitree_udp->Recv();
   m_unitree_udp->GetRecv(received_state);
+}
+
+const ControlCommunicator::State ControlCommunicator::receive()
+{
+  m_unitree_udp->Recv();
+  m_unitree_udp->GetRecv(*m_state);
+  return *m_state;
 }
 
 void ControlCommunicator::ignoreScreenOut()
