@@ -1,5 +1,9 @@
-#include <chrono>
+#include <cmath>
+
 #include <memory>
+#include <thread>
+#include <mutex>
+#include <chrono>
 #include <string>
 #include <algorithm>
 #include <array>
@@ -33,7 +37,7 @@ private:
   std::unordered_map <std::string, int> m_joint_map;
 
   std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
-
+  
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr m_imu_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_imu_temperature_publisher;
@@ -92,7 +96,7 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_optio
 
   m_bridge_timer = this->create_wall_timer(
     std::chrono::milliseconds(5),
-    std::bind(
+    ::std::bind(
       &UnitreeGo1BridgeNode::bridgeCallback,
       this
     )
@@ -109,11 +113,13 @@ void UnitreeGo1BridgeNode::bridgeCallback()
   const auto state = m_communicator->receive();
   publishState(state);
 
-  for(unsigned int i = 0; i < 12; ++ i)
   {
-    unitree_go1_bridge::ControlCommunicator::MotorCommand motor_command;
-    unitree_go1_bridge::utility::resetMotorCommand(motor_command);
-    m_communicator->setMotorCommand(motor_command, i);
+    for(unsigned int i = 0; i < 12; ++ i)
+    {
+      unitree_go1_bridge::ControlCommunicator::MotorCommand motor_command;
+      unitree_go1_bridge::utility::resetMotorCommand(motor_command);
+      m_communicator->setMotorCommand(motor_command, i);
+    }
   }
   m_communicator->send();
 }
@@ -173,6 +179,8 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
   }
   //! @todo Calibration and newton convert coefficent
   {
+    constexpr double sensor_z_offset_angle = std::sin(60 * M_PI / 180);
+    constexpr double sensor_x_offset_angle = std::cos(60 * M_PI / 180);
     std::array<geometry_msgs::msg::Vector3Stamped, 4> force_sensor_msg;
     //! @todo from parameter
     force_sensor_msg[0].header.frame_id = "fr_foot";
@@ -184,11 +192,11 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     {
       fsm.header.stamp = current_time_stamp;
     }
-    force_sensor_msg[0].vector.z = state.footForce[0];
-    force_sensor_msg[1].vector.z = state.footForce[1];
-    force_sensor_msg[2].vector.z = state.footForce[2];
-    force_sensor_msg[3].vector.z = state.footForce[3];
-
+    for(unsigned int i = 0; i < 4; ++ i)
+    {
+      force_sensor_msg[i].vector.x = sensor_x_offset_angle * state.footForce[i];
+      force_sensor_msg[i].vector.z = sensor_z_offset_angle * state.footForce[i];
+    }
     for(unsigned int i = 0; i < m_force_sensor_publishers.size(); ++ i)
     {
       m_force_sensor_publishers[i]->publish(force_sensor_msg[i]);
