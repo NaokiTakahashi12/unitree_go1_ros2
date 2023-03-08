@@ -15,16 +15,16 @@ ControlCommunicator::ControlCommunicator()
   m_target_ip_address(unitree_legged_sdk::UDP_SERVER_IP_BASIC)
 {
   ignoreScreenOut();
+  m_unitree_safety = std::make_unique<unitree_legged_sdk::Safety>
+  (
+    unitree_legged_sdk::LeggedType::Go1
+  );
   m_unitree_udp = std::make_unique<unitree_legged_sdk::UDP>
   (
     m_control_level,
     m_local_port,
     m_target_ip_address.c_str(),
     m_target_port
-  );
-  m_unitree_safety = std::make_unique<unitree_legged_sdk::Safety>
-  (
-    unitree_legged_sdk::LeggedType::Go1
   );
   enableScreenOut();
 

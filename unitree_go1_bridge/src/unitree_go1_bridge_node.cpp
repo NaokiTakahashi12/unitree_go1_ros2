@@ -17,6 +17,7 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
 
 #include <unitree_go1_bridge/utility.hpp>
 #include <unitree_go1_bridge/control_communicator.hpp>
@@ -36,8 +37,15 @@ private:
   std::vector<std::string> m_joint_names;
   std::unordered_map <std::string, int> m_joint_map;
 
+  std::mutex m_joint_trajectory_mutex;
+
   std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
   
+  trajectory_msgs::msg::JointTrajectory m_joint_trajectory;
+
+  rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
+    m_joint_trajectory_subscriber;
+
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr m_imu_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_imu_temperature_publisher;
@@ -47,6 +55,7 @@ private:
   rclcpp::TimerBase::SharedPtr m_bridge_timer;
 
   void bridgeCallback();
+  void jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr);
 
   void publishState(const unitree_go1_bridge::ControlCommunicator::State &);
 
@@ -63,6 +72,16 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_optio
   initializeJointMap();
 
   m_communicator = std::make_unique<unitree_go1_bridge::ControlCommunicator>();
+
+  m_joint_trajectory_subscriber = this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
+    "~/joint_trajectory",
+    rclcpp::QoS(5),
+    ::std::bind(
+      &UnitreeGo1BridgeNode::jointTrajectoryCallback,
+      this,
+      ::std::placeholders::_1
+    )
+  );
 
   m_joint_state_publisher = this->create_publisher<sensor_msgs::msg::JointState>(
     "~/joint_states",
@@ -114,14 +133,51 @@ void UnitreeGo1BridgeNode::bridgeCallback()
   publishState(state);
 
   {
-    for(unsigned int i = 0; i < 12; ++ i)
+    std::lock_guard<std::mutex> lock{m_joint_trajectory_mutex};
+    unsigned int joint_trajectory_count = 0;
+
+    if(m_joint_trajectory.joint_names.size() != m_joint_trajectory.points.size())
     {
+      RCLCPP_WARN(this->get_logger(), "Different size of joint trajectory joint_names vs points");
+      return;
+    }
+    for(const auto &joint_name : m_joint_trajectory.joint_names)
+    {
+      if(m_joint_map.count(joint_name) != 1)
+      {
+        RCLCPP_WARN(this->get_logger(), "Not found joint trajectory point name");
+        joint_trajectory_count ++;
+        continue;
+      }
       unitree_go1_bridge::ControlCommunicator::MotorCommand motor_command;
       unitree_go1_bridge::utility::resetMotorCommand(motor_command);
-      m_communicator->setMotorCommand(motor_command, i);
+
+      if(m_joint_trajectory.points[joint_trajectory_count].positions.size() > 0)
+      {
+        motor_command.q = m_joint_trajectory.points[joint_trajectory_count].positions[0];
+      }
+      if(m_joint_trajectory.points[joint_trajectory_count].velocities.size() > 0)
+      {
+        motor_command.dq = m_joint_trajectory.points[joint_trajectory_count].velocities[0];
+      }
+      if(m_joint_trajectory.points[joint_trajectory_count].effort.size() > 0)
+      {
+        motor_command.tau = m_joint_trajectory.points[joint_trajectory_count].effort[0];
+      }
+      motor_command.mode = 0x0A;
+      motor_command.Kp = 7.5;
+      motor_command.Kd = 1.0;
+      m_communicator->setMotorCommand(motor_command, m_joint_map[joint_name]);
+      joint_trajectory_count ++;
     }
   }
   m_communicator->send();
+}
+
+void UnitreeGo1BridgeNode::jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr joint_trajectory_msg)
+{
+  std::lock_guard<std::mutex> lock{m_joint_trajectory_mutex};
+  m_joint_trajectory = *joint_trajectory_msg;
 }
 
 void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommunicator::State &state)
