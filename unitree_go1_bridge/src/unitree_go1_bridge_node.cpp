@@ -22,9 +22,20 @@
 #include <unitree_go1_bridge/utility.hpp>
 #include <unitree_go1_bridge/control_communicator.hpp>
 
+#include <unitree_go1_bridge_node_parameters.hpp>
+
 
 namespace unitree_go1_bridge
 {
+struct UnitreeGo1MotorParam
+{
+  int motor_id;
+  double kp,
+         kd;
+  float max_velocity,
+        max_torque;
+};
+
 class UnitreeGo1BridgeNode : public rclcpp::Node
 {
 public:
@@ -35,13 +46,16 @@ private:
   static constexpr char m_this_node_name[] = "unitree_go1_bridge_node";
 
   std::vector<std::string> m_joint_names;
-  std::unordered_map <std::string, int> m_joint_map;
+  std::unordered_map <std::string, UnitreeGo1MotorParam> m_joint_map;
 
   std::mutex m_joint_trajectory_mutex;
 
   std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
   
   trajectory_msgs::msg::JointTrajectory m_joint_trajectory;
+
+  std::shared_ptr<unitree_go1_bridge_node::ParamListener> m_param_listener;
+  std::unique_ptr<unitree_go1_bridge_node::Params> m_params;
 
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
     m_joint_trajectory_subscriber;
@@ -67,6 +81,13 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_optio
 : rclcpp::Node(m_this_node_name, node_options)
 {
   RCLCPP_INFO_STREAM(this->get_logger(), "Start " << m_this_node_name);
+
+  m_param_listener = std::make_shared<unitree_go1_bridge_node::ParamListener>(
+    this->get_node_parameters_interface()
+  );
+  m_params = std::make_unique<unitree_go1_bridge_node::Params>(
+    m_param_listener->get_params()
+  );
 
   initializeJointNames();
   initializeJointMap();
@@ -113,8 +134,12 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_optio
     rclcpp::QoS(5)
   );
 
+  const unsigned int bridge_timer_milliseconds = 1e3 / m_params->bridge_frequency;
+
   m_bridge_timer = this->create_wall_timer(
-    std::chrono::milliseconds(5),
+    std::chrono::milliseconds(
+      bridge_timer_milliseconds
+    ),
     ::std::bind(
       &UnitreeGo1BridgeNode::bridgeCallback,
       this
@@ -152,6 +177,8 @@ void UnitreeGo1BridgeNode::bridgeCallback()
       unitree_go1_bridge::ControlCommunicator::MotorCommand motor_command;
       unitree_go1_bridge::utility::resetMotorCommand(motor_command);
 
+      decltype(auto) joint_config = m_joint_map[joint_name];
+
       if(m_joint_trajectory.points[joint_trajectory_count].positions.size() > 0)
       {
         motor_command.q = m_joint_trajectory.points[joint_trajectory_count].positions[0];
@@ -164,10 +191,18 @@ void UnitreeGo1BridgeNode::bridgeCallback()
       {
         motor_command.tau = m_joint_trajectory.points[joint_trajectory_count].effort[0];
       }
+      std::clamp(motor_command.dq,
+        -joint_config.max_velocity,
+        joint_config.max_velocity
+      );
+      std::clamp(motor_command.tau,
+        -joint_config.max_torque,
+        joint_config.max_torque
+      );
       motor_command.mode = 0x0A;
-      motor_command.Kp = 7.5;
-      motor_command.Kd = 1.0;
-      m_communicator->setMotorCommand(motor_command, m_joint_map[joint_name]);
+      motor_command.Kp = joint_config.kp;
+      motor_command.Kd = joint_config.kd;
+      m_communicator->setMotorCommand(motor_command, joint_config.motor_id);
       joint_trajectory_count ++;
     }
   }
@@ -193,7 +228,7 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
 
     for(const auto &joint_name : joint_state_msg.name)
     {
-      const int joint_index = m_joint_map[joint_name];
+      const int joint_index = m_joint_map[joint_name].motor_id;
       joint_state_msg.position.push_back(
         state.motorState[joint_index].q
       );
@@ -262,39 +297,103 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
 
 void UnitreeGo1BridgeNode::initializeJointNames()
 {
+  if(!m_params)
+  {
+    throw std::runtime_error("Failed access m_params");
+  }
   m_joint_names.clear();
-  m_joint_names.push_back("fr_hip_joint");
-  m_joint_names.push_back("fr_thigh_joint");
-  m_joint_names.push_back("fl_thigh_joint");
-  m_joint_names.push_back("fl_calf_joint");
-  m_joint_names.push_back("fl_hip_joint");
-  m_joint_names.push_back("rr_hip_joint");
-  m_joint_names.push_back("rl_hip_joint");
-  m_joint_names.push_back("rr_thigh_joint");
-  m_joint_names.push_back("rr_calf_joint");
-  m_joint_names.push_back("rl_thigh_joint");
-  m_joint_names.push_back("fr_calf_joint");
-  m_joint_names.push_back("rl_calf_joint");
+  m_joint_names.push_back(m_params->joint_configs.fr_hip.name);
+  m_joint_names.push_back(m_params->joint_configs.fr_thigh.name);
+  m_joint_names.push_back(m_params->joint_configs.fr_calf.name);
+  m_joint_names.push_back(m_params->joint_configs.fl_hip.name);
+  m_joint_names.push_back(m_params->joint_configs.fl_thigh.name);
+  m_joint_names.push_back(m_params->joint_configs.fl_calf.name);
+  m_joint_names.push_back(m_params->joint_configs.rr_hip.name);
+  m_joint_names.push_back(m_params->joint_configs.rr_thigh.name);
+  m_joint_names.push_back(m_params->joint_configs.rr_calf.name);
+  m_joint_names.push_back(m_params->joint_configs.rl_hip.name);
+  m_joint_names.push_back(m_params->joint_configs.rl_thigh.name);
+  m_joint_names.push_back(m_params->joint_configs.rl_calf.name);
   m_joint_names.shrink_to_fit();
+}
+
+template <typename T>
+void setUnitreeGo1MotorParamFromGeneratedParam(UnitreeGo1MotorParam &param, const int id, const T &joint_config_param)
+{
+  param.motor_id = id;
+  param.kp = joint_config_param.kp;
+  param.kd = joint_config_param.kd;
+  param.max_torque = joint_config_param.max_torque;
+  param.max_velocity = joint_config_param.max_velocity;
 }
 
 void UnitreeGo1BridgeNode::initializeJointMap()
 {
+  if(!m_params)
+  {
+    throw std::runtime_error("Failed access m_params");
+  }
   m_joint_map.clear();
-
-  //! @todo from parameter list
-  m_joint_map["fr_hip_joint"] = unitree_go1_bridge::unitree_legged_sdk::FR_0;
-  m_joint_map["fr_thigh_joint"] = unitree_go1_bridge::unitree_legged_sdk::FR_1;
-  m_joint_map["fr_calf_joint"] = unitree_go1_bridge::unitree_legged_sdk::FR_2;
-  m_joint_map["fl_hip_joint"] = unitree_go1_bridge::unitree_legged_sdk::FL_0;
-  m_joint_map["fl_thigh_joint"] = unitree_go1_bridge::unitree_legged_sdk::FL_1;
-  m_joint_map["fl_calf_joint"] = unitree_go1_bridge::unitree_legged_sdk::FL_2;
-  m_joint_map["rr_hip_joint"] = unitree_go1_bridge::unitree_legged_sdk::RR_0;
-  m_joint_map["rr_thigh_joint"] = unitree_go1_bridge::unitree_legged_sdk::RR_1;
-  m_joint_map["rr_calf_joint"] = unitree_go1_bridge::unitree_legged_sdk::RR_2;
-  m_joint_map["rl_hip_joint"] = unitree_go1_bridge::unitree_legged_sdk::RL_0;
-  m_joint_map["rl_thigh_joint"] = unitree_go1_bridge::unitree_legged_sdk::RL_1;
-  m_joint_map["rl_calf_joint"] = unitree_go1_bridge::unitree_legged_sdk::RL_2;
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.fr_hip.name],
+    unitree_go1_bridge::unitree_legged_sdk::FR_0,
+    m_params->joint_configs.fr_hip
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.fr_thigh.name],
+    unitree_go1_bridge::unitree_legged_sdk::FR_1,
+    m_params->joint_configs.fr_thigh
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.fr_calf.name],
+    unitree_go1_bridge::unitree_legged_sdk::FR_2,
+    m_params->joint_configs.fr_calf
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.fl_hip.name],
+    unitree_go1_bridge::unitree_legged_sdk::FL_0,
+    m_params->joint_configs.fl_hip
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.fl_thigh.name],
+    unitree_go1_bridge::unitree_legged_sdk::FL_1,
+    m_params->joint_configs.fl_thigh
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.fl_calf.name],
+    unitree_go1_bridge::unitree_legged_sdk::FL_2,
+    m_params->joint_configs.fl_calf
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.rr_hip.name],
+    unitree_go1_bridge::unitree_legged_sdk::RR_0,
+    m_params->joint_configs.rr_hip
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.rr_thigh.name],
+    unitree_go1_bridge::unitree_legged_sdk::RR_1,
+    m_params->joint_configs.rr_thigh
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.rr_calf.name],
+    unitree_go1_bridge::unitree_legged_sdk::RR_2,
+    m_params->joint_configs.rr_calf
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.rl_hip.name],
+    unitree_go1_bridge::unitree_legged_sdk::RL_0,
+    m_params->joint_configs.rl_hip
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.rl_thigh.name],
+    unitree_go1_bridge::unitree_legged_sdk::RL_1,
+    m_params->joint_configs.rl_thigh
+  );
+  setUnitreeGo1MotorParamFromGeneratedParam(
+    m_joint_map[m_params->joint_configs.rl_calf.name],
+    unitree_go1_bridge::unitree_legged_sdk::RL_2,
+    m_params->joint_configs.rl_calf
+  );
 }
 }  // namespace unitree_go1_bridge
 

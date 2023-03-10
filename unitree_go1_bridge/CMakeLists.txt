@@ -15,6 +15,10 @@ find_package(ament_cmake_auto REQUIRED)
 
 ament_auto_find_build_dependencies()
 
+generate_parameter_library(unitree_go1_bridge_node_parameters
+    src/unitree_go1_bridge_node_parameters.yaml
+)
+
 add_library(unitree_go1_communicator SHARED)
 target_sources(unitree_go1_communicator
   PUBLIC
@@ -42,6 +46,11 @@ ament_auto_add_library(unitree_go1_bridge SHARED
 target_link_libraries(unitree_go1_bridge
   unitree_go1_communicator
   ${UnitreeLeggedSDK_LIBRARY}
+  unitree_go1_bridge_node_parameters
+)
+target_compile_features(unitree_go1_bridge
+  PUBLIC
+    cxx_std_17
 )
 rclcpp_components_register_node(unitree_go1_bridge
   PLUGIN "unitree_go1_bridge::UnitreeGo1BridgeNode"
@@ -51,10 +60,15 @@ rclcpp_components_register_node(unitree_go1_bridge
 install(
   TARGETS
     unitree_go1_communicator
+    unitree_go1_bridge_node_parameters
     unitree_go1_bridge
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
+)
+install(
+    DIRECTORY include/
+    DESTINATION include/
 )
 
 if(BUILD_TESTING)
