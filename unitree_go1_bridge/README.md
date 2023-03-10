@@ -17,3 +17,13 @@ $ sudo reboot
 ```
 
 In order to disable all autostarts, WIFI hotspots are also disabled.
+
+# Build dependencies
+
+See [package.xml](package.xml) for basic dependencies.
+
+Please install and use the following repositories for [unitree_legged_sdk](https://github.com/unitreerobotics/unitree_legged_sdk) library.
+
+[NaokiTakahashi12/unitree_legged_sdk](https://github.com/NaokiTakahashi12/unitree_legged_sdk)
+
+This is created because there is no library installation and no configuration for CMake.
