@@ -1,0 +1,86 @@
+unitree_go1_bridge_node:
+  bridge_frequency: 
+    type: int
+    default_value: 200
+    description: Unitree Go1 UDP bridge frequency (Hz)
+  joint_configs:
+    fr_hip: &joint_config_default
+      name: &joint_name_default
+        type: string
+        default_value: fr_hip_joint
+        description: Joint name
+      kp:
+        type: double
+        default_value: 4.0
+        # TODO add bounds
+        description: Unitree Go1 motor Kp
+      kd:
+        type: double
+        default_value: 0.4
+        # TODO add bounds
+        description: Unitree Go1 motor Kd
+      max_torque:
+        read_only: true
+        type: double
+        default_value: 0.5
+        description: Maximum joint torque of Unitree Go1 motor
+      max_velocity:
+        read_only: true
+        type: double
+        default_value: 0.5
+        description: Maximum joint velocity of Unitree Go1 motor
+    fr_thigh:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: fr_thigh_joint
+    fr_calf:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: fr_calf_joint
+    fl_hip:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: fl_hip_joint
+    fl_thigh:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: fl_thigh_joint
+    fl_calf:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: fl_calf_joint
+    rr_hip:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: rr_hip_joint
+    rr_thigh:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: rr_thigh_joint
+    rr_calf:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: rr_calf_joint
+    rl_hip:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: rl_hip_joint
+    rl_thigh:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: rl_thigh_joint
+    rl_calf:
+      <<: *joint_config_default
+      name:
+        <<: *joint_name_default
+        default_value: rl_calf_joint
