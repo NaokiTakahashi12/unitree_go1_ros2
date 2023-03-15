@@ -48,6 +48,8 @@
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 
+#include <std_srvs/srv/empty.hpp>
+
 #include <unitree_go1_bridge/utility.hpp>
 #include <unitree_go1_bridge/control_communicator.hpp>
 
@@ -74,6 +76,10 @@ public:
 private:
   static constexpr char m_this_node_name[] = "unitree_go1_bridge_node";
 
+  bool m_offset_calibrated;
+
+  std::array<int16_t, 4> m_offset_force;
+
   std::vector<std::string> m_joint_names;
   std::unordered_map <std::string, UnitreeGo1MotorParam> m_joint_map;
 
@@ -93,6 +99,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr m_imu_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_imu_temperature_publisher;
   std::array<rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr, 4>
+    m_raw_force_sensor_publishers,
     m_force_sensor_publishers;
 
   rclcpp::TimerBase::SharedPtr m_bridge_timer;
@@ -107,7 +114,9 @@ private:
 };
 
 UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_options)
-: rclcpp::Node(m_this_node_name, node_options)
+: rclcpp::Node(m_this_node_name, node_options),
+  m_offset_calibrated(false),
+  m_offset_force({0})
 {
   RCLCPP_INFO_STREAM(this->get_logger(), "Start " << m_this_node_name);
 
@@ -146,6 +155,22 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_optio
     rclcpp::QoS(5)
   );
 
+  m_raw_force_sensor_publishers[0] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+    "~/force/fr/raw",
+    rclcpp::QoS(5)
+  );
+  m_raw_force_sensor_publishers[1] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+    "~/force/fl/raw",
+    rclcpp::QoS(5)
+  );
+  m_raw_force_sensor_publishers[2] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+    "~/force/rr/raw",
+    rclcpp::QoS(5)
+  );
+  m_raw_force_sensor_publishers[3] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+    "~/force/rl/raw",
+    rclcpp::QoS(5)
+  );
   m_force_sensor_publishers[0] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
     "~/force/fr",
     rclcpp::QoS(5)
@@ -297,29 +322,54 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     imu_temperature_msg.temperature = state.imu.temperature;
     m_imu_temperature_publisher->publish(imu_temperature_msg);
   }
-  //! @todo Calibration and newton convert coefficent
+  //! @todo Newton convert coefficent
   {
     constexpr double sensor_z_offset_angle = std::sin(60 * M_PI / 180);
     constexpr double sensor_x_offset_angle = std::cos(60 * M_PI / 180);
-    std::array<geometry_msgs::msg::Vector3Stamped, 4> force_sensor_msg;
-    //! @todo from parameter
-    force_sensor_msg[0].header.frame_id = "fr_foot";
-    force_sensor_msg[1].header.frame_id = "fl_foot";
-    force_sensor_msg[2].header.frame_id = "rr_foot";
-    force_sensor_msg[3].header.frame_id = "rl_foot";
 
-    for(auto &&fsm : force_sensor_msg)
+    std::array<geometry_msgs::msg::Vector3Stamped, 4>
+      force_sensor_msgs,
+      offset_calibrated_force_sensor_msgs;
+
+    //! @todo from parameter
+    force_sensor_msgs[0].header.frame_id = "fr_foot";
+    force_sensor_msgs[1].header.frame_id = "fl_foot";
+    force_sensor_msgs[2].header.frame_id = "rr_foot";
+    force_sensor_msgs[3].header.frame_id = "rl_foot";
+
+    for(auto &&fsm : force_sensor_msgs)
     {
       fsm.header.stamp = current_time_stamp;
     }
     for(unsigned int i = 0; i < 4; ++ i)
     {
-      force_sensor_msg[i].vector.x = sensor_x_offset_angle * state.footForce[i];
-      force_sensor_msg[i].vector.z = sensor_z_offset_angle * state.footForce[i];
+      force_sensor_msgs[i].vector.x = sensor_x_offset_angle * state.footForce[i];
+      force_sensor_msgs[i].vector.z = sensor_z_offset_angle * state.footForce[i];
     }
-    for(unsigned int i = 0; i < m_force_sensor_publishers.size(); ++ i)
+
+    for(unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++ i)
     {
-      m_force_sensor_publishers[i]->publish(force_sensor_msg[i]);
+      m_raw_force_sensor_publishers[i]->publish(force_sensor_msgs[i]);
+    }
+    if(m_offset_calibrated)
+    {
+      std::copy(
+        force_sensor_msgs.cbegin(),
+        force_sensor_msgs.cend(),
+        offset_calibrated_force_sensor_msgs.begin()
+      );
+      for(unsigned int i = 0; i < 4; ++ i)
+      {
+        const uint16_t foot_force = state.footForce[i] + m_offset_force[i];
+        offset_calibrated_force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
+        offset_calibrated_force_sensor_msgs[i].vector.z = sensor_z_offset_angle * foot_force;
+      }
+      for(unsigned int i = 0; i < m_force_sensor_publishers.size(); ++ i)
+      {
+        m_force_sensor_publishers[i]->publish(
+          offset_calibrated_force_sensor_msgs[i]
+        );
+      }
     }
   }
 }
