@@ -295,8 +295,8 @@ void UnitreeGo1BridgeNode::jointTrajectoryCallback(const trajectory_msgs::msg::J
 }
 
 void UnitreeGo1BridgeNode::doCalibrateFootForce(
-  const std_srvs::srv::Empty::Request::SharedPtr request,
-  std_srvs::srv::Empty::Response::SharedPtr response
+  const std_srvs::srv::Empty::Request::SharedPtr,
+  std_srvs::srv::Empty::Response::SharedPtr
 )
 {
   RCLCPP_INFO_STREAM(this->get_logger(), "Called do calibrate foot force");
