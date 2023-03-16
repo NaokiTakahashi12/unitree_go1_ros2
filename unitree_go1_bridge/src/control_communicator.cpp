@@ -87,6 +87,15 @@ void ControlCommunicator::setMotorCommand(const MotorCommand &motor_command, con
   m_command->motorCmd[motor_index] = motor_command;
 }
 
+const ControlCommunicator::State ControlCommunicator::getLatestState()
+{
+  if(!m_state)
+  {
+    throw std::runtime_error("Latest state is nullptr");
+  }
+  return *m_state;
+}
+
 void ControlCommunicator::send()
 {
   m_unitree_udp->GetRecv(*m_state);

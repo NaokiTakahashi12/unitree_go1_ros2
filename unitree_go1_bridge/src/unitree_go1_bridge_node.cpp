@@ -78,12 +78,13 @@ private:
 
   bool m_offset_calibrated;
 
-  std::array<int16_t, 4> m_offset_force;
+  std::array<float, 4> m_offset_force;
 
   std::vector<std::string> m_joint_names;
   std::unordered_map <std::string, UnitreeGo1MotorParam> m_joint_map;
 
-  std::mutex m_joint_trajectory_mutex;
+  std::mutex m_joint_trajectory_mutex,
+             m_calibration_mutex;
 
   std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
   
@@ -102,10 +103,17 @@ private:
     m_raw_force_sensor_publishers,
     m_force_sensor_publishers;
 
+  rclcpp::Service<std_srvs::srv::Empty>::SharedPtr m_do_foot_force_calibration_service;
+
   rclcpp::TimerBase::SharedPtr m_bridge_timer;
 
   void bridgeCallback();
   void jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr);
+
+  void doCalibrateFootForce(
+    const std_srvs::srv::Empty::Request::SharedPtr,
+    std_srvs::srv::Empty::Response::SharedPtr
+  );
 
   void publishState(const unitree_go1_bridge::ControlCommunicator::State &);
 
@@ -188,6 +196,16 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_optio
     rclcpp::QoS(5)
   );
 
+  m_do_foot_force_calibration_service = this->create_service<std_srvs::srv::Empty>(
+    "~/do_calibrate_foot_force",
+    ::std::bind(
+      &UnitreeGo1BridgeNode::doCalibrateFootForce,
+      this,
+      ::std::placeholders::_1,
+      ::std::placeholders::_2
+    )
+  );
+
   const unsigned int bridge_timer_milliseconds = 1e3 / m_params->bridge_frequency;
 
   m_bridge_timer = this->create_wall_timer(
@@ -208,11 +226,13 @@ UnitreeGo1BridgeNode::~UnitreeGo1BridgeNode()
 
 void UnitreeGo1BridgeNode::bridgeCallback()
 {
+  std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
+
   const auto state = m_communicator->receive();
   publishState(state);
 
   {
-    std::lock_guard<std::mutex> lock{m_joint_trajectory_mutex};
+    std::lock_guard<std::mutex> trajectory_lock{m_joint_trajectory_mutex};
     unsigned int joint_trajectory_count = 0;
 
     if(m_joint_trajectory.joint_names.size() != m_joint_trajectory.points.size())
@@ -267,6 +287,51 @@ void UnitreeGo1BridgeNode::jointTrajectoryCallback(const trajectory_msgs::msg::J
 {
   std::lock_guard<std::mutex> lock{m_joint_trajectory_mutex};
   m_joint_trajectory = *joint_trajectory_msg;
+}
+
+void UnitreeGo1BridgeNode::doCalibrateFootForce(
+  const std_srvs::srv::Empty::Request::SharedPtr request,
+  std_srvs::srv::Empty::Response::SharedPtr response
+)
+{
+  RCLCPP_INFO_STREAM(this->get_logger(), "Called do calibrate foot force");
+  const unsigned int wait_milliseconds = 1e3 / m_params->bridge_frequency;
+  m_offset_calibrated = false;
+
+  unsigned int count_samples = 0;
+  std::array<int16_t, 4> sum_foot_forces{0};
+
+  for(
+    count_samples = 0;
+    count_samples < m_params->offset_calibration_samples;
+    ++ count_samples
+  )
+  {
+    std::this_thread::sleep_for(
+      std::chrono::milliseconds(wait_milliseconds)
+    );
+    {
+      std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
+      const auto state = m_communicator->getLatestState();
+      for(unsigned int i = 0; i < 4; ++ i)
+      {
+        sum_foot_forces[i] += state.footForce[i];
+      }
+    }
+  }
+  for(int i = 0; i < 4; ++ i)
+  {
+    m_offset_force[i] = -static_cast<float>(sum_foot_forces[i]) / static_cast<float>(count_samples);
+  }
+  RCLCPP_INFO_STREAM(
+    this->get_logger(),
+    "Offset force is: "
+    << m_offset_force[0] << ", "
+    << m_offset_force[1] << ", "
+    << m_offset_force[2] << ", "
+    << m_offset_force[3]
+  );
+  m_offset_calibrated = true;
 }
 
 void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommunicator::State &state)
@@ -360,7 +425,7 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
       );
       for(unsigned int i = 0; i < 4; ++ i)
       {
-        const uint16_t foot_force = state.footForce[i] + m_offset_force[i];
+        const float foot_force = state.footForce[i] + m_offset_force[i];
         offset_calibrated_force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
         offset_calibrated_force_sensor_msgs[i].vector.z = sensor_z_offset_angle * foot_force;
       }

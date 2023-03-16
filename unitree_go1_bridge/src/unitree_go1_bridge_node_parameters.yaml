@@ -32,6 +32,14 @@ unitree_go1_bridge_node:
     type: int
     default_value: 200
     description: Unitree Go1 UDP bridge frequency (Hz)
+  offset_calibration_samples:
+    read_only: true
+    type: int
+    default_value: 128
+    description: Unitree Go1 foot force sensor offset calibration samples
+    validation:
+      lower_bounds<>:
+        - 1
   joint_configs:
     fr_hip: &joint_config_default
       name: &joint_name_default
