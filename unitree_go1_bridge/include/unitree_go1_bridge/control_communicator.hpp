@@ -52,6 +52,8 @@ public:
 
   void setMotorCommand(const MotorCommand &, const unsigned int motor_index);
 
+  const State getLatestState();
+
   void send();
 
   void receive(State &);
