@@ -408,8 +408,9 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     }
     for(unsigned int i = 0; i < 4; ++ i)
     {
-      force_sensor_msgs[i].vector.x = sensor_x_offset_angle * state.footForce[i];
-      force_sensor_msgs[i].vector.z = sensor_z_offset_angle * state.footForce[i];
+      const float foot_force = m_params->foot_force_coefficient * state.footForce[i];
+      force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
+      force_sensor_msgs[i].vector.z = sensor_z_offset_angle * foot_force;
     }
 
     for(unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++ i)
@@ -425,7 +426,7 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
       );
       for(unsigned int i = 0; i < 4; ++ i)
       {
-        const float foot_force = state.footForce[i] + m_offset_force[i];
+        const float foot_force = m_params->foot_force_coefficient * (state.footForce[i] + m_offset_force[i]);
         offset_calibrated_force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
         offset_calibrated_force_sensor_msgs[i].vector.z = sensor_z_offset_angle * foot_force;
       }

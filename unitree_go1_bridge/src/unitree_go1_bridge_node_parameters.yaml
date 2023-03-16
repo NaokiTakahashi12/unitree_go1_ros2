@@ -40,6 +40,11 @@ unitree_go1_bridge_node:
     validation:
       lower_bounds<>:
         - 1
+  foot_force_coefficient:
+    read_only: true
+    type: double
+    default_value: 0.164611625
+    description: Convert unit of foot force sensor value to newton
   joint_configs:
     fr_hip: &joint_config_default
       name: &joint_name_default
