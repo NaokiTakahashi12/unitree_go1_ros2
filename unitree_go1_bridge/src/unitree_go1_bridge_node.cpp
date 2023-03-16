@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <array>
 #include <vector>
+#include <deque>
 #include <unordered_map>
 
 #include <rclcpp/rclcpp.hpp>
@@ -74,14 +75,18 @@ public:
   ~UnitreeGo1BridgeNode();
 
 private:
+  static constexpr int m_max_foot_force_size = 4;
   static constexpr char m_this_node_name[] = "unitree_go1_bridge_node";
 
   bool m_offset_calibrated;
 
-  std::array<float, 4> m_offset_force;
+  std::array<float, m_max_foot_force_size> m_offset_force;
 
   std::vector<std::string> m_joint_names;
   std::unordered_map <std::string, UnitreeGo1MotorParam> m_joint_map;
+
+  std::deque<std::array<float, m_max_foot_force_size>>
+    m_foot_force_average_filter_buffer;
 
   std::mutex m_joint_trajectory_mutex,
              m_calibration_mutex;
@@ -99,7 +104,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr m_imu_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_imu_temperature_publisher;
-  std::array<rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr, 4>
+  std::array<rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr, m_max_foot_force_size>
     m_raw_force_sensor_publishers,
     m_force_sensor_publishers;
 
@@ -299,7 +304,7 @@ void UnitreeGo1BridgeNode::doCalibrateFootForce(
   m_offset_calibrated = false;
 
   unsigned int count_samples = 0;
-  std::array<int16_t, 4> sum_foot_forces{0};
+  std::array<int16_t, m_max_foot_force_size> sum_foot_forces{0};
 
   for(
     count_samples = 0;
@@ -313,13 +318,13 @@ void UnitreeGo1BridgeNode::doCalibrateFootForce(
     {
       std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
       const auto state = m_communicator->getLatestState();
-      for(unsigned int i = 0; i < 4; ++ i)
+      for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
       {
         sum_foot_forces[i] += state.footForce[i];
       }
     }
   }
-  for(int i = 0; i < 4; ++ i)
+  for(int i = 0; i < m_max_foot_force_size; ++ i)
   {
     m_offset_force[i] = -static_cast<float>(sum_foot_forces[i]) / static_cast<float>(count_samples);
   }
@@ -392,7 +397,9 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     constexpr double sensor_z_offset_angle = std::sin(60 * M_PI / 180);
     constexpr double sensor_x_offset_angle = std::cos(60 * M_PI / 180);
 
-    std::array<geometry_msgs::msg::Vector3Stamped, 4>
+    std::array<float, m_max_foot_force_size> average_foot_force{0};
+
+    std::array<geometry_msgs::msg::Vector3Stamped, m_max_foot_force_size>
       force_sensor_msgs,
       offset_calibrated_force_sensor_msgs;
 
@@ -406,7 +413,7 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     {
       fsm.header.stamp = current_time_stamp;
     }
-    for(unsigned int i = 0; i < 4; ++ i)
+    for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
     {
       const float foot_force = m_params->foot_force_coefficient * state.footForce[i];
       force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
@@ -417,25 +424,48 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     {
       m_raw_force_sensor_publishers[i]->publish(force_sensor_msgs[i]);
     }
-    if(m_offset_calibrated)
+    if(!m_offset_calibrated)
     {
-      std::copy(
-        force_sensor_msgs.cbegin(),
-        force_sensor_msgs.cend(),
-        offset_calibrated_force_sensor_msgs.begin()
+      return;
+    }
+    std::copy(
+      force_sensor_msgs.cbegin(),
+      force_sensor_msgs.cend(),
+      offset_calibrated_force_sensor_msgs.begin()
+    );
+    m_foot_force_average_filter_buffer.emplace_back(std::array<float, m_max_foot_force_size>{});
+
+    for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
+    {
+      m_foot_force_average_filter_buffer.back()[i] = state.footForce[i];
+    }
+    if(
+      m_foot_force_average_filter_buffer.size()
+      > static_cast<unsigned int>(m_params->foot_force_average_filter.history_length)
+    )
+    {
+      m_foot_force_average_filter_buffer.pop_front();
+    }
+    for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
+    {
+      float sum = 0;
+      for(unsigned int j = 0; j < m_foot_force_average_filter_buffer.size(); ++ j)
+      {
+        sum += m_foot_force_average_filter_buffer[j][i];
+      }
+      average_foot_force[i] = sum / m_foot_force_average_filter_buffer.size();
+    }
+    for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
+    {
+      const float foot_force = m_params->foot_force_coefficient * (average_foot_force[i] + m_offset_force[i]);
+      offset_calibrated_force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
+      offset_calibrated_force_sensor_msgs[i].vector.z = sensor_z_offset_angle * foot_force;
+    }
+    for(unsigned int i = 0; i < m_force_sensor_publishers.size(); ++ i)
+    {
+      m_force_sensor_publishers[i]->publish(
+        offset_calibrated_force_sensor_msgs[i]
       );
-      for(unsigned int i = 0; i < 4; ++ i)
-      {
-        const float foot_force = m_params->foot_force_coefficient * (state.footForce[i] + m_offset_force[i]);
-        offset_calibrated_force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
-        offset_calibrated_force_sensor_msgs[i].vector.z = sensor_z_offset_angle * foot_force;
-      }
-      for(unsigned int i = 0; i < m_force_sensor_publishers.size(); ++ i)
-      {
-        m_force_sensor_publishers[i]->publish(
-          offset_calibrated_force_sensor_msgs[i]
-        );
-      }
     }
   }
 }
