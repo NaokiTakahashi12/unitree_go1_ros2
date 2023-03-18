@@ -115,7 +115,7 @@ private:
   void bridgeCallback();
   void jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr);
 
-  void doCalibrateFootForce(
+  void calibrateFootForce(
     const std_srvs::srv::Empty::Request::SharedPtr,
     std_srvs::srv::Empty::Response::SharedPtr
   );
@@ -202,9 +202,9 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_optio
   );
 
   m_do_foot_force_calibration_service = this->create_service<std_srvs::srv::Empty>(
-    "~/do_calibrate_foot_force",
+    "~/calibrate_foot_force",
     ::std::bind(
-      &UnitreeGo1BridgeNode::doCalibrateFootForce,
+      &UnitreeGo1BridgeNode::calibrateFootForce,
       this,
       ::std::placeholders::_1,
       ::std::placeholders::_2
@@ -294,7 +294,7 @@ void UnitreeGo1BridgeNode::jointTrajectoryCallback(const trajectory_msgs::msg::J
   m_joint_trajectory = *joint_trajectory_msg;
 }
 
-void UnitreeGo1BridgeNode::doCalibrateFootForce(
+void UnitreeGo1BridgeNode::calibrateFootForce(
   const std_srvs::srv::Empty::Request::SharedPtr,
   std_srvs::srv::Empty::Response::SharedPtr
 )
