@@ -88,7 +88,7 @@ private:
 
   std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
 
-  trajectory_msgs::msg::JointTrajectory::UniquePtr m_joint_trajectory;
+  trajectory_msgs::msg::JointTrajectory::ConstSharedPtr m_joint_trajectory;
 
   std::shared_ptr<unitree_go1_bridge_node::ParamListener> m_param_listener;
   std::unique_ptr<unitree_go1_bridge_node::Params> m_params;
@@ -110,7 +110,7 @@ private:
   rclcpp::TimerBase::SharedPtr m_bridge_timer;
 
   void bridgeCallback();
-  void jointTrajectoryCallback(trajectory_msgs::msg::JointTrajectory::UniquePtr);
+  void jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr);
 
   void calibrateFootForce(
     const std_srvs::srv::Empty::Request::SharedPtr,
@@ -285,10 +285,10 @@ void UnitreeGo1BridgeNode::bridgeCallback()
 }
 
 void UnitreeGo1BridgeNode::jointTrajectoryCallback(
-  trajectory_msgs::msg::JointTrajectory::UniquePtr joint_trajectory_msg)
+  const trajectory_msgs::msg::JointTrajectory::SharedPtr joint_trajectory_msg)
 {
   std::lock_guard<std::mutex> lock{m_joint_trajectory_mutex};
-  m_joint_trajectory = std::move(joint_trajectory_msg);
+  m_joint_trajectory = joint_trajectory_msg;
 }
 
 void UnitreeGo1BridgeNode::calibrateFootForce(
