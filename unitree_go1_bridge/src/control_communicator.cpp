@@ -1,21 +1,21 @@
 // BSD 3-Clause License
-// 
+//
 // Copyright (c) 2023, NaokiTakahashi
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -44,12 +44,10 @@ ControlCommunicator::ControlCommunicator()
   m_target_ip_address(unitree_legged_sdk::UDP_SERVER_IP_BASIC)
 {
   ignoreScreenOut();
-  m_unitree_safety = std::make_unique<unitree_legged_sdk::Safety>
-  (
+  m_unitree_safety = std::make_unique<unitree_legged_sdk::Safety>(
     unitree_legged_sdk::LeggedType::Go1
   );
-  m_unitree_udp = std::make_unique<unitree_legged_sdk::UDP>
-  (
+  m_unitree_udp = std::make_unique<unitree_legged_sdk::UDP>(
     m_control_level,
     m_local_port,
     m_target_ip_address.c_str(),
@@ -67,21 +65,20 @@ ControlCommunicator::ControlCommunicator()
 ControlCommunicator::~ControlCommunicator()
 {
   ignoreScreenOut();
-  if(m_unitree_udp)
-  {
+  if (m_unitree_udp) {
     m_unitree_udp.reset();
   }
-  if(m_unitree_safety)
-  {
+  if (m_unitree_safety) {
     m_unitree_safety.reset();
   }
   enableScreenOut();
 }
 
-void ControlCommunicator::setMotorCommand(const MotorCommand &motor_command, const unsigned int motor_index)
+void ControlCommunicator::setMotorCommand(
+  const MotorCommand & motor_command,
+  const unsigned int motor_index)
 {
-  if(motor_index > 20)
-  {
+  if (motor_index > 20) {
     throw std::out_of_range("Please set motor index is 0 <= index <= 19");
   }
   m_command->motorCmd[motor_index] = motor_command;
@@ -89,8 +86,7 @@ void ControlCommunicator::setMotorCommand(const MotorCommand &motor_command, con
 
 const ControlCommunicator::State ControlCommunicator::getLatestState()
 {
-  if(!m_state)
-  {
+  if (!m_state) {
     throw std::runtime_error("Latest state is nullptr");
   }
   return *m_state;
@@ -100,8 +96,7 @@ void ControlCommunicator::send()
 {
   m_unitree_udp->GetRecv(*m_state);
 
-  if(not m_unitree_safety)
-  {
+  if (not m_unitree_safety) {
     throw std::runtime_error("unitree safety is null");
   }
   const auto protect_result = m_unitree_safety->PowerProtect(
@@ -109,8 +104,7 @@ void ControlCommunicator::send()
     *m_state,
     1
   );
-  if(protect_result < 0)
-  {
+  if (protect_result < 0) {
     throw std::runtime_error("Error of unitree safety");
   }
   m_unitree_udp->SetSend(*m_command);
@@ -118,7 +112,7 @@ void ControlCommunicator::send()
 }
 
 //! @param [out] received_state
-void ControlCommunicator::receive(State &received_state)
+void ControlCommunicator::receive(State & received_state)
 {
   m_unitree_udp->Recv();
   m_unitree_udp->GetRecv(received_state);

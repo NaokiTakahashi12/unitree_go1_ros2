@@ -1,21 +1,21 @@
 // BSD 3-Clause License
-// 
+//
 // Copyright (c) 2023, NaokiTakahashi
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -36,7 +36,6 @@
 #include <string>
 #include <algorithm>
 #include <array>
-#include <vector>
 #include <deque>
 #include <unordered_map>
 
@@ -62,10 +61,8 @@ namespace unitree_go1_bridge
 struct UnitreeGo1MotorParam
 {
   int motor_id;
-  double kp,
-         kd;
-  float max_velocity,
-        max_torque;
+  double kp, kd;
+  float max_velocity, max_torque;
 };
 
 class UnitreeGo1BridgeNode : public rclcpp::Node
@@ -82,17 +79,15 @@ private:
 
   std::array<float, m_max_foot_force_size> m_offset_force;
 
-  std::vector<std::string> m_joint_names;
-  std::unordered_map <std::string, UnitreeGo1MotorParam> m_joint_map;
+  std::deque<std::string> m_joint_names;
+  std::unordered_map<std::string, UnitreeGo1MotorParam> m_joint_map;
 
-  std::deque<std::array<float, m_max_foot_force_size>>
-    m_foot_force_average_filter_buffer;
+  std::deque<std::array<float, m_max_foot_force_size>> m_foot_force_average_filter_buffer;
 
-  std::mutex m_joint_trajectory_mutex,
-             m_calibration_mutex;
+  std::mutex m_joint_trajectory_mutex, m_calibration_mutex;
 
   std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
-  
+
   trajectory_msgs::msg::JointTrajectory::UniquePtr m_joint_trajectory;
 
   std::shared_ptr<unitree_go1_bridge_node::ParamListener> m_param_listener;
@@ -104,8 +99,10 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr m_imu_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_imu_temperature_publisher;
-  std::array<rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr, m_max_foot_force_size>
-    m_raw_force_sensor_publishers,
+  std::array<rclcpp::Publisher<
+      geometry_msgs::msg::Vector3Stamped>::SharedPtr,
+    m_max_foot_force_size
+  > m_raw_force_sensor_publishers,
     m_force_sensor_publishers;
 
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr m_do_foot_force_calibration_service;
@@ -126,7 +123,7 @@ private:
   void initializeJointMap();
 };
 
-UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions &node_options)
+UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_options)
 : rclcpp::Node(m_this_node_name, node_options),
   m_offset_calibrated(false),
   m_offset_force({0})
@@ -240,21 +237,17 @@ void UnitreeGo1BridgeNode::bridgeCallback()
     std::lock_guard<std::mutex> trajectory_lock{m_joint_trajectory_mutex};
     unsigned int joint_trajectory_count = 0;
 
-    if(not m_joint_trajectory)
-    {
+    if (not m_joint_trajectory) {
       return;
     }
-    if(m_joint_trajectory->joint_names.size() != m_joint_trajectory->points.size())
-    {
+    if (m_joint_trajectory->joint_names.size() != m_joint_trajectory->points.size()) {
       RCLCPP_WARN(this->get_logger(), "Different size of joint trajectory joint_names vs points");
       return;
     }
-    for(const auto &joint_name : m_joint_trajectory->joint_names)
-    {
-      if(m_joint_map.count(joint_name) != 1)
-      {
+    for (const auto & joint_name : m_joint_trajectory->joint_names) {
+      if (m_joint_map.count(joint_name) != 1) {
         RCLCPP_WARN(this->get_logger(), "Not found joint trajectory point name");
-        joint_trajectory_count ++;
+        joint_trajectory_count++;
         continue;
       }
       unitree_go1_bridge::ControlCommunicator::MotorCommand motor_command;
@@ -262,23 +255,22 @@ void UnitreeGo1BridgeNode::bridgeCallback()
 
       decltype(auto) joint_config = m_joint_map[joint_name];
 
-      if(m_joint_trajectory->points[joint_trajectory_count].positions.size() > 0)
-      {
+      if (m_joint_trajectory->points[joint_trajectory_count].positions.size() > 0) {
         motor_command.q = m_joint_trajectory->points[joint_trajectory_count].positions[0];
       }
-      if(m_joint_trajectory->points[joint_trajectory_count].velocities.size() > 0)
-      {
+      if (m_joint_trajectory->points[joint_trajectory_count].velocities.size() > 0) {
         motor_command.dq = m_joint_trajectory->points[joint_trajectory_count].velocities[0];
       }
-      if(m_joint_trajectory->points[joint_trajectory_count].effort.size() > 0)
-      {
+      if (m_joint_trajectory->points[joint_trajectory_count].effort.size() > 0) {
         motor_command.tau = m_joint_trajectory->points[joint_trajectory_count].effort[0];
       }
-      std::clamp(motor_command.dq,
+      std::clamp(
+        motor_command.dq,
         -joint_config.max_velocity,
         joint_config.max_velocity
       );
-      std::clamp(motor_command.tau,
+      std::clamp(
+        motor_command.tau,
         -joint_config.max_torque,
         joint_config.max_torque
       );
@@ -286,13 +278,14 @@ void UnitreeGo1BridgeNode::bridgeCallback()
       motor_command.Kp = joint_config.kp;
       motor_command.Kd = joint_config.kd;
       m_communicator->setMotorCommand(motor_command, joint_config.motor_id);
-      joint_trajectory_count ++;
+      joint_trajectory_count++;
     }
   }
   m_communicator->send();
 }
 
-void UnitreeGo1BridgeNode::jointTrajectoryCallback(trajectory_msgs::msg::JointTrajectory::UniquePtr joint_trajectory_msg)
+void UnitreeGo1BridgeNode::jointTrajectoryCallback(
+  trajectory_msgs::msg::JointTrajectory::UniquePtr joint_trajectory_msg)
 {
   std::lock_guard<std::mutex> lock{m_joint_trajectory_mutex};
   m_joint_trajectory = std::move(joint_trajectory_msg);
@@ -310,10 +303,10 @@ void UnitreeGo1BridgeNode::calibrateFootForce(
   unsigned int count_samples = 0;
   std::array<int16_t, m_max_foot_force_size> sum_foot_forces{0};
 
-  for(
+  for (
     count_samples = 0;
     count_samples < m_params->offset_calibration_samples;
-    ++ count_samples
+    ++count_samples
   )
   {
     std::this_thread::sleep_for(
@@ -322,28 +315,27 @@ void UnitreeGo1BridgeNode::calibrateFootForce(
     {
       std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
       const auto state = m_communicator->getLatestState();
-      for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
-      {
+      for (unsigned int i = 0; i < m_max_foot_force_size; ++i) {
         sum_foot_forces[i] += state.footForce[i];
       }
     }
   }
-  for(int i = 0; i < m_max_foot_force_size; ++ i)
-  {
+  for (int i = 0; i < m_max_foot_force_size; ++i) {
     m_offset_force[i] = -static_cast<float>(sum_foot_forces[i]) / static_cast<float>(count_samples);
   }
   RCLCPP_INFO_STREAM(
     this->get_logger(),
     "Offset force is: "
-    << m_offset_force[0] << ", "
-    << m_offset_force[1] << ", "
-    << m_offset_force[2] << ", "
-    << m_offset_force[3]
+      << m_offset_force[0] << ", "
+      << m_offset_force[1] << ", "
+      << m_offset_force[2] << ", "
+      << m_offset_force[3]
   );
   m_offset_calibrated = true;
 }
 
-void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommunicator::State &state)
+void UnitreeGo1BridgeNode::publishState(
+  const unitree_go1_bridge::ControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
 
@@ -354,8 +346,7 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     joint_state_msg->name.resize(m_joint_names.size());
     std::copy(m_joint_names.cbegin(), m_joint_names.cend(), joint_state_msg->name.begin());
 
-    for(const auto &joint_name : joint_state_msg->name)
-    {
+    for (const auto & joint_name : joint_state_msg->name) {
       const int joint_index = m_joint_map[joint_name].motor_id;
       joint_state_msg->position.push_back(
         state.motorState[joint_index].q
@@ -409,12 +400,10 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     > force_sensor_msgs,
       offset_calibrated_force_sensor_msgs;
 
-    for(auto &&fsm : force_sensor_msgs)
-    {
+    for (auto && fsm : force_sensor_msgs) {
       fsm = std::make_unique<geometry_msgs::msg::Vector3Stamped>();
     }
-    for(auto &&ocfsm : offset_calibrated_force_sensor_msgs)
-    {
+    for (auto && ocfsm : offset_calibrated_force_sensor_msgs) {
       ocfsm = std::make_unique<geometry_msgs::msg::Vector3Stamped>();
     }
 
@@ -424,62 +413,52 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     force_sensor_msgs[2]->header.frame_id = "rr_foot";
     force_sensor_msgs[3]->header.frame_id = "rl_foot";
 
-    for(auto &&fsm : force_sensor_msgs)
-    {
+    for (auto && fsm : force_sensor_msgs) {
       fsm->header.stamp = current_time_stamp;
     }
-    for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
-    {
+    for (unsigned int i = 0; i < m_max_foot_force_size; ++i) {
       const float foot_force = m_params->foot_force_coefficient * state.footForce[i];
       force_sensor_msgs[i]->vector.x = sensor_x_offset_angle * foot_force;
       force_sensor_msgs[i]->vector.z = sensor_z_offset_angle * foot_force;
     }
 
-    for(unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++ i)
-    {
+    for (unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++i) {
       offset_calibrated_force_sensor_msgs[i]->header =
         force_sensor_msgs[i]->header;
     }
-    for(unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++ i)
-    {
+    for (unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++i) {
       m_raw_force_sensor_publishers[i]->publish(
         std::move(force_sensor_msgs[i])
       );
     }
-    if(!m_offset_calibrated)
-    {
+    if (!m_offset_calibrated) {
       return;
     }
     m_foot_force_average_filter_buffer.emplace_back(std::array<float, m_max_foot_force_size>{});
 
-    for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
-    {
+    for (unsigned int i = 0; i < m_max_foot_force_size; ++i) {
       m_foot_force_average_filter_buffer.back()[i] = state.footForce[i];
     }
-    if(
-      m_foot_force_average_filter_buffer.size()
-      > static_cast<unsigned int>(m_params->foot_force_average_filter.history_length)
-    )
+    if (
+      m_foot_force_average_filter_buffer.size() >
+      static_cast<unsigned int>(m_params->foot_force_average_filter.history_length))
     {
       m_foot_force_average_filter_buffer.pop_front();
     }
-    for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
-    {
+    for (unsigned int i = 0; i < m_max_foot_force_size; ++i) {
       float sum = 0;
-      for(unsigned int j = 0; j < m_foot_force_average_filter_buffer.size(); ++ j)
-      {
+      for (unsigned int j = 0; j < m_foot_force_average_filter_buffer.size(); ++j) {
         sum += m_foot_force_average_filter_buffer[j][i];
       }
       average_foot_force[i] = sum / m_foot_force_average_filter_buffer.size();
     }
-    for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
-    {
-      const float foot_force = m_params->foot_force_coefficient * (average_foot_force[i] + m_offset_force[i]);
+    for (unsigned int i = 0; i < m_max_foot_force_size; ++i) {
+      const float foot_force = m_params->foot_force_coefficient *
+        (average_foot_force[i] + m_offset_force[i]);
       offset_calibrated_force_sensor_msgs[i]->vector.x = sensor_x_offset_angle * foot_force;
       offset_calibrated_force_sensor_msgs[i]->vector.z = sensor_z_offset_angle * foot_force;
     }
-    for(unsigned int i = 0; i < m_force_sensor_publishers.size(); ++ i)
-    {
+    for (unsigned int i = 0; i < m_force_sensor_publishers.size(); ++i) {
       m_force_sensor_publishers[i]->publish(
         std::move(offset_calibrated_force_sensor_msgs[i])
       );
@@ -489,8 +468,7 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
 
 void UnitreeGo1BridgeNode::initializeJointNames()
 {
-  if(!m_params)
-  {
+  if (!m_params) {
     throw std::runtime_error("Failed access m_params");
   }
   m_joint_names.clear();
@@ -509,8 +487,10 @@ void UnitreeGo1BridgeNode::initializeJointNames()
   m_joint_names.shrink_to_fit();
 }
 
-template <typename T>
-void setUnitreeGo1MotorParamFromGeneratedParam(UnitreeGo1MotorParam &param, const int id, const T &joint_config_param)
+template<typename T>
+void setUnitreeGo1MotorParamFromGeneratedParam(
+  UnitreeGo1MotorParam & param, const int id,
+  const T & joint_config_param)
 {
   param.motor_id = id;
   param.kp = joint_config_param.kp;
@@ -521,8 +501,7 @@ void setUnitreeGo1MotorParamFromGeneratedParam(UnitreeGo1MotorParam &param, cons
 
 void UnitreeGo1BridgeNode::initializeJointMap()
 {
-  if(!m_params)
-  {
+  if (!m_params) {
     throw std::runtime_error("Failed access m_params");
   }
   m_joint_map.clear();
