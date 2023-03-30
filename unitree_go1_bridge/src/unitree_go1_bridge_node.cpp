@@ -93,7 +93,7 @@ private:
 
   std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
   
-  trajectory_msgs::msg::JointTrajectory m_joint_trajectory;
+  trajectory_msgs::msg::JointTrajectory::UniquePtr m_joint_trajectory;
 
   std::shared_ptr<unitree_go1_bridge_node::ParamListener> m_param_listener;
   std::unique_ptr<unitree_go1_bridge_node::Params> m_params;
@@ -113,7 +113,7 @@ private:
   rclcpp::TimerBase::SharedPtr m_bridge_timer;
 
   void bridgeCallback();
-  void jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr);
+  void jointTrajectoryCallback(trajectory_msgs::msg::JointTrajectory::UniquePtr);
 
   void calibrateFootForce(
     const std_srvs::srv::Empty::Request::SharedPtr,
@@ -240,12 +240,16 @@ void UnitreeGo1BridgeNode::bridgeCallback()
     std::lock_guard<std::mutex> trajectory_lock{m_joint_trajectory_mutex};
     unsigned int joint_trajectory_count = 0;
 
-    if(m_joint_trajectory.joint_names.size() != m_joint_trajectory.points.size())
+    if(not m_joint_trajectory)
+    {
+      return;
+    }
+    if(m_joint_trajectory->joint_names.size() != m_joint_trajectory->points.size())
     {
       RCLCPP_WARN(this->get_logger(), "Different size of joint trajectory joint_names vs points");
       return;
     }
-    for(const auto &joint_name : m_joint_trajectory.joint_names)
+    for(const auto &joint_name : m_joint_trajectory->joint_names)
     {
       if(m_joint_map.count(joint_name) != 1)
       {
@@ -258,17 +262,17 @@ void UnitreeGo1BridgeNode::bridgeCallback()
 
       decltype(auto) joint_config = m_joint_map[joint_name];
 
-      if(m_joint_trajectory.points[joint_trajectory_count].positions.size() > 0)
+      if(m_joint_trajectory->points[joint_trajectory_count].positions.size() > 0)
       {
-        motor_command.q = m_joint_trajectory.points[joint_trajectory_count].positions[0];
+        motor_command.q = m_joint_trajectory->points[joint_trajectory_count].positions[0];
       }
-      if(m_joint_trajectory.points[joint_trajectory_count].velocities.size() > 0)
+      if(m_joint_trajectory->points[joint_trajectory_count].velocities.size() > 0)
       {
-        motor_command.dq = m_joint_trajectory.points[joint_trajectory_count].velocities[0];
+        motor_command.dq = m_joint_trajectory->points[joint_trajectory_count].velocities[0];
       }
-      if(m_joint_trajectory.points[joint_trajectory_count].effort.size() > 0)
+      if(m_joint_trajectory->points[joint_trajectory_count].effort.size() > 0)
       {
-        motor_command.tau = m_joint_trajectory.points[joint_trajectory_count].effort[0];
+        motor_command.tau = m_joint_trajectory->points[joint_trajectory_count].effort[0];
       }
       std::clamp(motor_command.dq,
         -joint_config.max_velocity,
@@ -288,10 +292,10 @@ void UnitreeGo1BridgeNode::bridgeCallback()
   m_communicator->send();
 }
 
-void UnitreeGo1BridgeNode::jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr joint_trajectory_msg)
+void UnitreeGo1BridgeNode::jointTrajectoryCallback(trajectory_msgs::msg::JointTrajectory::UniquePtr joint_trajectory_msg)
 {
   std::lock_guard<std::mutex> lock{m_joint_trajectory_mutex};
-  m_joint_trajectory = *joint_trajectory_msg;
+  m_joint_trajectory = std::move(joint_trajectory_msg);
 }
 
 void UnitreeGo1BridgeNode::calibrateFootForce(
@@ -344,53 +348,53 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
   const auto current_time_stamp = this->get_clock()->now();
 
   {
-    sensor_msgs::msg::JointState joint_state_msg;
-    joint_state_msg.header.stamp = current_time_stamp;
+    auto joint_state_msg = std::make_unique<sensor_msgs::msg::JointState>();
+    joint_state_msg->header.stamp = current_time_stamp;
 
-    joint_state_msg.name.resize(m_joint_names.size());
-    std::copy(m_joint_names.cbegin(), m_joint_names.cend(), joint_state_msg.name.begin());
+    joint_state_msg->name.resize(m_joint_names.size());
+    std::copy(m_joint_names.cbegin(), m_joint_names.cend(), joint_state_msg->name.begin());
 
-    for(const auto &joint_name : joint_state_msg.name)
+    for(const auto &joint_name : joint_state_msg->name)
     {
       const int joint_index = m_joint_map[joint_name].motor_id;
-      joint_state_msg.position.push_back(
+      joint_state_msg->position.push_back(
         state.motorState[joint_index].q
       );
-      joint_state_msg.velocity.push_back(
+      joint_state_msg->velocity.push_back(
         state.motorState[joint_index].dq
       );
-      joint_state_msg.effort.push_back(
+      joint_state_msg->effort.push_back(
         state.motorState[joint_index].tauEst
       );
     }
-    m_joint_state_publisher->publish(joint_state_msg);
+    m_joint_state_publisher->publish(std::move(joint_state_msg));
   }
   {
-    sensor_msgs::msg::Imu imu_msg;
+    auto imu_msg = std::make_unique<sensor_msgs::msg::Imu>();
 
     //! @todo from parameter
-    imu_msg.header.frame_id = "imu_link";
-    imu_msg.header.stamp = current_time_stamp;
-    imu_msg.linear_acceleration.x = state.imu.accelerometer[0];
-    imu_msg.linear_acceleration.y = state.imu.accelerometer[1];
-    imu_msg.linear_acceleration.z = state.imu.accelerometer[2];
-    imu_msg.angular_velocity.x = state.imu.gyroscope[0];
-    imu_msg.angular_velocity.y = state.imu.gyroscope[1];
-    imu_msg.angular_velocity.z = state.imu.gyroscope[2];
-    imu_msg.orientation.x = state.imu.quaternion[1];
-    imu_msg.orientation.y = state.imu.quaternion[1];
-    imu_msg.orientation.z = state.imu.quaternion[1];
-    imu_msg.orientation.w = state.imu.quaternion[0];
-    m_imu_publisher->publish(imu_msg);
+    imu_msg->header.frame_id = "imu_link";
+    imu_msg->header.stamp = current_time_stamp;
+    imu_msg->linear_acceleration.x = state.imu.accelerometer[0];
+    imu_msg->linear_acceleration.y = state.imu.accelerometer[1];
+    imu_msg->linear_acceleration.z = state.imu.accelerometer[2];
+    imu_msg->angular_velocity.x = state.imu.gyroscope[0];
+    imu_msg->angular_velocity.y = state.imu.gyroscope[1];
+    imu_msg->angular_velocity.z = state.imu.gyroscope[2];
+    imu_msg->orientation.x = state.imu.quaternion[1];
+    imu_msg->orientation.y = state.imu.quaternion[1];
+    imu_msg->orientation.z = state.imu.quaternion[1];
+    imu_msg->orientation.w = state.imu.quaternion[0];
+    m_imu_publisher->publish(std::move(imu_msg));
   }
   {
-    sensor_msgs::msg::Temperature imu_temperature_msg;
+    auto imu_temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
 
     //! @todo from parameter
-    imu_temperature_msg.header.frame_id = "imu_link";
-    imu_temperature_msg.header.stamp = current_time_stamp;
-    imu_temperature_msg.temperature = state.imu.temperature;
-    m_imu_temperature_publisher->publish(imu_temperature_msg);
+    imu_temperature_msg->header.frame_id = "imu_link";
+    imu_temperature_msg->header.stamp = current_time_stamp;
+    imu_temperature_msg->temperature = state.imu.temperature;
+    m_imu_temperature_publisher->publish(std::move(imu_temperature_msg));
   }
   //! @todo Newton convert coefficent
   {
@@ -399,40 +403,53 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
 
     std::array<float, m_max_foot_force_size> average_foot_force{0};
 
-    std::array<geometry_msgs::msg::Vector3Stamped, m_max_foot_force_size>
-      force_sensor_msgs,
+    std::array<
+      geometry_msgs::msg::Vector3Stamped::UniquePtr,
+      m_max_foot_force_size
+    > force_sensor_msgs,
       offset_calibrated_force_sensor_msgs;
-
-    //! @todo from parameter
-    force_sensor_msgs[0].header.frame_id = "fr_foot";
-    force_sensor_msgs[1].header.frame_id = "fl_foot";
-    force_sensor_msgs[2].header.frame_id = "rr_foot";
-    force_sensor_msgs[3].header.frame_id = "rl_foot";
 
     for(auto &&fsm : force_sensor_msgs)
     {
-      fsm.header.stamp = current_time_stamp;
+      fsm = std::make_unique<geometry_msgs::msg::Vector3Stamped>();
+    }
+    for(auto &&ocfsm : offset_calibrated_force_sensor_msgs)
+    {
+      ocfsm = std::make_unique<geometry_msgs::msg::Vector3Stamped>();
+    }
+
+    //! @todo from parameter
+    force_sensor_msgs[0]->header.frame_id = "fr_foot";
+    force_sensor_msgs[1]->header.frame_id = "fl_foot";
+    force_sensor_msgs[2]->header.frame_id = "rr_foot";
+    force_sensor_msgs[3]->header.frame_id = "rl_foot";
+
+    for(auto &&fsm : force_sensor_msgs)
+    {
+      fsm->header.stamp = current_time_stamp;
     }
     for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
     {
       const float foot_force = m_params->foot_force_coefficient * state.footForce[i];
-      force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
-      force_sensor_msgs[i].vector.z = sensor_z_offset_angle * foot_force;
+      force_sensor_msgs[i]->vector.x = sensor_x_offset_angle * foot_force;
+      force_sensor_msgs[i]->vector.z = sensor_z_offset_angle * foot_force;
     }
 
     for(unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++ i)
     {
-      m_raw_force_sensor_publishers[i]->publish(force_sensor_msgs[i]);
+      offset_calibrated_force_sensor_msgs[i]->header =
+        force_sensor_msgs[i]->header;
+    }
+    for(unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++ i)
+    {
+      m_raw_force_sensor_publishers[i]->publish(
+        std::move(force_sensor_msgs[i])
+      );
     }
     if(!m_offset_calibrated)
     {
       return;
     }
-    std::copy(
-      force_sensor_msgs.cbegin(),
-      force_sensor_msgs.cend(),
-      offset_calibrated_force_sensor_msgs.begin()
-    );
     m_foot_force_average_filter_buffer.emplace_back(std::array<float, m_max_foot_force_size>{});
 
     for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
@@ -458,13 +475,13 @@ void UnitreeGo1BridgeNode::publishState(const unitree_go1_bridge::ControlCommuni
     for(unsigned int i = 0; i < m_max_foot_force_size; ++ i)
     {
       const float foot_force = m_params->foot_force_coefficient * (average_foot_force[i] + m_offset_force[i]);
-      offset_calibrated_force_sensor_msgs[i].vector.x = sensor_x_offset_angle * foot_force;
-      offset_calibrated_force_sensor_msgs[i].vector.z = sensor_z_offset_angle * foot_force;
+      offset_calibrated_force_sensor_msgs[i]->vector.x = sensor_x_offset_angle * foot_force;
+      offset_calibrated_force_sensor_msgs[i]->vector.z = sensor_z_offset_angle * foot_force;
     }
     for(unsigned int i = 0; i < m_force_sensor_publishers.size(); ++ i)
     {
       m_force_sensor_publishers[i]->publish(
-        offset_calibrated_force_sensor_msgs[i]
+        std::move(offset_calibrated_force_sensor_msgs[i])
       );
     }
   }
