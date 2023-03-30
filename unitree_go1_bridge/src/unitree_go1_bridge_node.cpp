@@ -238,6 +238,11 @@ void UnitreeGo1BridgeNode::bridgeCallback()
     unsigned int joint_trajectory_count = 0;
 
     if (not m_joint_trajectory) {
+      // Because the state is not updated without sending some data
+      //
+      // m_communicator will not work even if it is sent because the position
+      // command and speed command are invalid after initialization.
+      m_communicator->send();
       return;
     }
     if (m_joint_trajectory->joint_names.size() != m_joint_trajectory->points.size()) {
