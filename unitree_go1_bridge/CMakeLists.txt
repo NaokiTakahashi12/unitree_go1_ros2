@@ -2,13 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 project(unitree_go1_bridge)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
 # find dependencies
 find_package(UnitreeLeggedSDK REQUIRED)
-
-message(${UnitreeLeggedSDK_LIBRARY})
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
@@ -66,8 +64,8 @@ install(
   RUNTIME DESTINATION bin
 )
 install(
-    DIRECTORY include/
-    DESTINATION include/
+  DIRECTORY include/
+  DESTINATION include/
 )
 
 if(BUILD_TESTING)

@@ -1,21 +1,21 @@
 // BSD 3-Clause License
-// 
+//
 // Copyright (c) 2023, NaokiTakahashi
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -34,25 +34,22 @@ namespace unitree_go1_bridge::utility
 {
 namespace unitree_legged_sdk = UNITREE_LEGGED_SDK;
 
-void zeroResetLowCommand(ControlCommunicator::Command &command)
+void zeroResetLowCommand(ControlCommunicator::Command & command)
 {
-  for(auto &&head : command.head)
-  {
+  for (auto && head : command.head) {
     head = 0;
   }
   command.levelFlag = 0;
   command.frameReserve = 0;
-  for(auto &&sn : command.SN)
-  {
+  for (auto && sn : command.SN) {
     sn = 0;
   }
-  for(auto &&version : command.version)
-  {
+  for (auto && version : command.version) {
     version = 0;
   }
 }
 
-void resetMotorCommand(ControlCommunicator::MotorCommand &motor_command)
+void resetMotorCommand(ControlCommunicator::MotorCommand & motor_command)
 {
   motor_command.mode = 0;
   motor_command.q = unitree_legged_sdk::PosStopF;
