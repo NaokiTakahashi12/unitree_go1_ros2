@@ -410,11 +410,10 @@ void UnitreeGo1BridgeNode::publishState(
       ocfsm = std::make_unique<geometry_msgs::msg::Vector3Stamped>();
     }
 
-    //! @todo from parameter
-    force_sensor_msgs[0]->header.frame_id = "fr_foot";
-    force_sensor_msgs[1]->header.frame_id = "fl_foot";
-    force_sensor_msgs[2]->header.frame_id = "rr_foot";
-    force_sensor_msgs[3]->header.frame_id = "rl_foot";
+    force_sensor_msgs[0]->header.frame_id = m_params->foot_force_sensor_frame_id.fr;
+    force_sensor_msgs[1]->header.frame_id = m_params->foot_force_sensor_frame_id.fl;
+    force_sensor_msgs[2]->header.frame_id = m_params->foot_force_sensor_frame_id.rr;
+    force_sensor_msgs[3]->header.frame_id = m_params->foot_force_sensor_frame_id.rl;
 
     for (auto && fsm : force_sensor_msgs) {
       fsm->header.stamp = current_time_stamp;
