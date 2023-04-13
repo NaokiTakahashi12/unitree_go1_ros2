@@ -368,8 +368,7 @@ void UnitreeGo1BridgeNode::publishState(
   {
     auto imu_msg = std::make_unique<sensor_msgs::msg::Imu>();
 
-    //! @todo from parameter
-    imu_msg->header.frame_id = "imu_link";
+    imu_msg->header.frame_id = m_params->imu_frame_id;
     imu_msg->header.stamp = current_time_stamp;
     imu_msg->linear_acceleration.x = state.imu.accelerometer[0];
     imu_msg->linear_acceleration.y = state.imu.accelerometer[1];
@@ -386,16 +385,14 @@ void UnitreeGo1BridgeNode::publishState(
   {
     auto imu_temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
 
-    //! @todo from parameter
-    imu_temperature_msg->header.frame_id = "imu_link";
+    imu_temperature_msg->header.frame_id = m_params->imu_frame_id;
     imu_temperature_msg->header.stamp = current_time_stamp;
     imu_temperature_msg->temperature = state.imu.temperature;
     m_imu_temperature_publisher->publish(std::move(imu_temperature_msg));
   }
-  //! @todo Newton convert coefficent
   {
-    constexpr double sensor_z_offset_angle = std::sin(60 * M_PI / 180);
-    constexpr double sensor_x_offset_angle = std::cos(60 * M_PI / 180);
+    const double sensor_z_offset_angle = std::sin(m_params->force_sensor_offset_angles.pitch);
+    const double sensor_x_offset_angle = std::cos(m_params->force_sensor_offset_angles.pitch);
 
     std::array<float, m_max_foot_force_size> average_foot_force{0};
 
@@ -412,11 +409,10 @@ void UnitreeGo1BridgeNode::publishState(
       ocfsm = std::make_unique<geometry_msgs::msg::Vector3Stamped>();
     }
 
-    //! @todo from parameter
-    force_sensor_msgs[0]->header.frame_id = "fr_foot";
-    force_sensor_msgs[1]->header.frame_id = "fl_foot";
-    force_sensor_msgs[2]->header.frame_id = "rr_foot";
-    force_sensor_msgs[3]->header.frame_id = "rl_foot";
+    force_sensor_msgs[0]->header.frame_id = m_params->foot_force_sensor_frame_id.fr;
+    force_sensor_msgs[1]->header.frame_id = m_params->foot_force_sensor_frame_id.fl;
+    force_sensor_msgs[2]->header.frame_id = m_params->foot_force_sensor_frame_id.rr;
+    force_sensor_msgs[3]->header.frame_id = m_params->foot_force_sensor_frame_id.rl;
 
     for (auto && fsm : force_sensor_msgs) {
       fsm->header.stamp = current_time_stamp;
