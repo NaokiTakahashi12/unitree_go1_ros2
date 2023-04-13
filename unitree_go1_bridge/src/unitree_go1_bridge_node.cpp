@@ -390,10 +390,9 @@ void UnitreeGo1BridgeNode::publishState(
     imu_temperature_msg->temperature = state.imu.temperature;
     m_imu_temperature_publisher->publish(std::move(imu_temperature_msg));
   }
-  //! @todo Newton convert coefficent
   {
-    constexpr double sensor_z_offset_angle = std::sin(60 * M_PI / 180);
-    constexpr double sensor_x_offset_angle = std::cos(60 * M_PI / 180);
+    const double sensor_z_offset_angle = std::sin(m_params->force_sensor_offset_angles.pitch);
+    const double sensor_x_offset_angle = std::cos(m_params->force_sensor_offset_angles.pitch);
 
     std::array<float, m_max_foot_force_size> average_foot_force{0};
 

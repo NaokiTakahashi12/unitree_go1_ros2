@@ -53,6 +53,11 @@ unitree_go1_bridge_node:
       validation:
         lower_bounds<>:
           - 1
+  force_sensor_offset_angles:
+    pitch:
+      type: double
+      default_value: 1.047197551
+      description: Pitch angle of the force sensor
   foot_force_sensor_frame_id:
     fr:
       type: string
