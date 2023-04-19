@@ -32,6 +32,16 @@ unitree_go1_bridge_node:
     type: int
     default_value: 200
     description: Unitree Go1 UDP bridge frequency (Hz)
+    validation:
+      lower_bounds<>:
+        - 1
+  sensor_publish_frequency:
+    type: int
+    default_value: 10
+    description: Unitree Go1 sensor publish frequency (Hz)
+    validation:
+      lower_bounds<>:
+        - 1
   offset_calibration_samples:
     read_only: true
     type: int
