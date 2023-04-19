@@ -35,10 +35,17 @@ unitree_go1_bridge_node:
     validation:
       lower_bounds<>:
         - 1
-  sensor_publish_frequency:
+  sensor_publish_low_frequency:
     type: int
     default_value: 10
-    description: Unitree Go1 sensor publish frequency (Hz)
+    description: Unitree Go1 sensor publish low frequency (Hz)
+    validation:
+      lower_bounds<>:
+        - 1
+  sensor_publish_high_frequency:
+    type: int
+    default_value: 100
+    description: Unitree Go1 sensor publish high frequency (Hz)
     validation:
       lower_bounds<>:
         - 1

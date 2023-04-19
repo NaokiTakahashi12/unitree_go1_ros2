@@ -108,10 +108,12 @@ private:
 
   rclcpp::TimerBase::SharedPtr
     m_bridge_timer,
-    m_sensor_publish_timer;
+    m_sensor_publish_high_rate_timer,
+    m_sensor_publish_low_rate_timer;
 
   void bridgeCallback();
-  void sensorPublishCallback();
+  void sensorPublishLowRateCallback();
+  void sensorPublishHighRateCallback();
   void jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr);
 
   void calibrateFootForce(
@@ -119,8 +121,9 @@ private:
     std_srvs::srv::Empty::Response::SharedPtr
   );
 
-  void publishSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
   void publishJointState(const unitree_go1_bridge::ControlCommunicator::State &);
+  void publishLowRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
+  void publishHighRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
 
   void initializeJointNames();
   void initializeJointMap();
@@ -210,12 +213,23 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
       ::std::placeholders::_2
     )
   );
-  const unsigned int bridge_timer_milliseconds = 1e3 / m_params->bridge_frequency;
-  const unsigned int sensor_publish_timer_milliseconds = 1e3 / m_params->sensor_publish_frequency;
+  const unsigned int bridge_timer_milliseconds =
+    1e3 / m_params->bridge_frequency;
+  const unsigned int sensor_publish_low_rate_timer_milliseconds =
+    1e3 / m_params->sensor_publish_low_frequency;
+  const unsigned int sensor_publish_high_rate_timer_milliseconds =
+    1e3 / m_params->sensor_publish_high_frequency;
 
-  if (bridge_timer_milliseconds >= sensor_publish_timer_milliseconds) {
+  if (bridge_timer_milliseconds >= sensor_publish_high_rate_timer_milliseconds) {
     std::string
-      error_message{"Please set the sensor publish frequency lower than the bridge frequency"};
+      error_message{"Please set the sensor publish high frequency lower than the bridge frequency"};
+    RCLCPP_ERROR(this->get_logger(), error_message.c_str());
+    throw std::runtime_error(error_message);
+  }
+  if (sensor_publish_high_rate_timer_milliseconds >= sensor_publish_low_rate_timer_milliseconds) {
+    std::string
+      error_message{
+      "Please set the sensor publish low frequency lower than the sensor publish low frequency"};
     RCLCPP_ERROR(this->get_logger(), error_message.c_str());
     throw std::runtime_error(error_message);
   }
@@ -228,12 +242,21 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
       this
     )
   );
-  m_sensor_publish_timer = this->create_wall_timer(
+  m_sensor_publish_low_rate_timer = this->create_wall_timer(
     std::chrono::milliseconds(
-      sensor_publish_timer_milliseconds
+      sensor_publish_low_rate_timer_milliseconds
     ),
     ::std::bind(
-      &UnitreeGo1BridgeNode::sensorPublishCallback,
+      &UnitreeGo1BridgeNode::sensorPublishLowRateCallback,
+      this
+    )
+  );
+  m_sensor_publish_high_rate_timer = this->create_wall_timer(
+    std::chrono::milliseconds(
+      sensor_publish_high_rate_timer_milliseconds
+    ),
+    ::std::bind(
+      &UnitreeGo1BridgeNode::sensorPublishHighRateCallback,
       this
     )
   );
@@ -306,11 +329,18 @@ void UnitreeGo1BridgeNode::bridgeCallback()
   m_communicator->send();
 }
 
-void UnitreeGo1BridgeNode::sensorPublishCallback()
+void UnitreeGo1BridgeNode::sensorPublishLowRateCallback()
 {
   std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
   const auto state = m_communicator->getLatestState();
-  publishSensorState(state);
+  publishLowRateSensorState(state);
+}
+
+void UnitreeGo1BridgeNode::sensorPublishHighRateCallback()
+{
+  std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
+  const auto state = m_communicator->getLatestState();
+  publishHighRateSensorState(state);
 }
 
 void UnitreeGo1BridgeNode::jointTrajectoryCallback(
@@ -388,7 +418,12 @@ void UnitreeGo1BridgeNode::publishJointState(
   m_joint_state_publisher->publish(std::move(joint_state_msg));
 }
 
-void UnitreeGo1BridgeNode::publishSensorState(
+void UnitreeGo1BridgeNode::publishLowRateSensorState(
+  const unitree_go1_bridge::ControlCommunicator::State &)
+{
+}
+
+void UnitreeGo1BridgeNode::publishHighRateSensorState(
   const unitree_go1_bridge::ControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
