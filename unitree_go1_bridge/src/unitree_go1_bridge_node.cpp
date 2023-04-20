@@ -100,16 +100,20 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr m_imu_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_imu_temperature_publisher;
   std::array<rclcpp::Publisher<
-      geometry_msgs::msg::Vector3Stamped>::SharedPtr,
-    m_max_foot_force_size
+      geometry_msgs::msg::Vector3Stamped>::SharedPtr, m_max_foot_force_size
   > m_raw_force_sensor_publishers,
     m_force_sensor_publishers;
 
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr m_do_foot_force_calibration_service;
 
-  rclcpp::TimerBase::SharedPtr m_bridge_timer;
+  rclcpp::TimerBase::SharedPtr
+    m_bridge_timer,
+    m_sensor_publish_high_rate_timer,
+    m_sensor_publish_low_rate_timer;
 
   void bridgeCallback();
+  void sensorPublishLowRateCallback();
+  void sensorPublishHighRateCallback();
   void jointTrajectoryCallback(const trajectory_msgs::msg::JointTrajectory::SharedPtr);
 
   void calibrateFootForce(
@@ -117,7 +121,9 @@ private:
     std_srvs::srv::Empty::Response::SharedPtr
   );
 
-  void publishState(const unitree_go1_bridge::ControlCommunicator::State &);
+  void publishJointState(const unitree_go1_bridge::ControlCommunicator::State &);
+  void publishLowRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
+  void publishHighRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
 
   void initializeJointNames();
   void initializeJointMap();
@@ -207,15 +213,50 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
       ::std::placeholders::_2
     )
   );
+  const unsigned int bridge_timer_milliseconds =
+    1e3 / m_params->bridge_frequency;
+  const unsigned int sensor_publish_low_rate_timer_milliseconds =
+    1e3 / m_params->sensor_publish_low_frequency;
+  const unsigned int sensor_publish_high_rate_timer_milliseconds =
+    1e3 / m_params->sensor_publish_high_frequency;
 
-  const unsigned int bridge_timer_milliseconds = 1e3 / m_params->bridge_frequency;
-
+  if (bridge_timer_milliseconds >= sensor_publish_high_rate_timer_milliseconds) {
+    std::string
+      error_message{"Please set the sensor publish high frequency lower than the bridge frequency"};
+    RCLCPP_ERROR(this->get_logger(), error_message.c_str());
+    throw std::runtime_error(error_message);
+  }
+  if (sensor_publish_high_rate_timer_milliseconds >= sensor_publish_low_rate_timer_milliseconds) {
+    std::string
+      error_message{
+      "Please set the sensor publish low frequency lower than the sensor publish low frequency"};
+    RCLCPP_ERROR(this->get_logger(), error_message.c_str());
+    throw std::runtime_error(error_message);
+  }
   m_bridge_timer = this->create_wall_timer(
     std::chrono::milliseconds(
       bridge_timer_milliseconds
     ),
     ::std::bind(
       &UnitreeGo1BridgeNode::bridgeCallback,
+      this
+    )
+  );
+  m_sensor_publish_low_rate_timer = this->create_wall_timer(
+    std::chrono::milliseconds(
+      sensor_publish_low_rate_timer_milliseconds
+    ),
+    ::std::bind(
+      &UnitreeGo1BridgeNode::sensorPublishLowRateCallback,
+      this
+    )
+  );
+  m_sensor_publish_high_rate_timer = this->create_wall_timer(
+    std::chrono::milliseconds(
+      sensor_publish_high_rate_timer_milliseconds
+    ),
+    ::std::bind(
+      &UnitreeGo1BridgeNode::sensorPublishHighRateCallback,
       this
     )
   );
@@ -231,8 +272,7 @@ void UnitreeGo1BridgeNode::bridgeCallback()
   std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
 
   const auto state = m_communicator->receive();
-  publishState(state);
-
+  publishJointState(state);
   {
     std::lock_guard<std::mutex> trajectory_lock{m_joint_trajectory_mutex};
     unsigned int joint_trajectory_count = 0;
@@ -289,6 +329,20 @@ void UnitreeGo1BridgeNode::bridgeCallback()
   m_communicator->send();
 }
 
+void UnitreeGo1BridgeNode::sensorPublishLowRateCallback()
+{
+  std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
+  const auto state = m_communicator->getLatestState();
+  publishLowRateSensorState(state);
+}
+
+void UnitreeGo1BridgeNode::sensorPublishHighRateCallback()
+{
+  std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
+  const auto state = m_communicator->getLatestState();
+  publishHighRateSensorState(state);
+}
+
 void UnitreeGo1BridgeNode::jointTrajectoryCallback(
   const trajectory_msgs::msg::JointTrajectory::SharedPtr joint_trajectory_msg)
 {
@@ -339,32 +393,40 @@ void UnitreeGo1BridgeNode::calibrateFootForce(
   m_offset_calibrated = true;
 }
 
-void UnitreeGo1BridgeNode::publishState(
+void UnitreeGo1BridgeNode::publishJointState(
   const unitree_go1_bridge::ControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
+  auto joint_state_msg = std::make_unique<sensor_msgs::msg::JointState>();
+  joint_state_msg->header.stamp = current_time_stamp;
 
-  {
-    auto joint_state_msg = std::make_unique<sensor_msgs::msg::JointState>();
-    joint_state_msg->header.stamp = current_time_stamp;
+  joint_state_msg->name.resize(m_joint_names.size());
+  std::copy(m_joint_names.cbegin(), m_joint_names.cend(), joint_state_msg->name.begin());
 
-    joint_state_msg->name.resize(m_joint_names.size());
-    std::copy(m_joint_names.cbegin(), m_joint_names.cend(), joint_state_msg->name.begin());
-
-    for (const auto & joint_name : joint_state_msg->name) {
-      const int joint_index = m_joint_map[joint_name].motor_id;
-      joint_state_msg->position.push_back(
-        state.motorState[joint_index].q
-      );
-      joint_state_msg->velocity.push_back(
-        state.motorState[joint_index].dq
-      );
-      joint_state_msg->effort.push_back(
-        state.motorState[joint_index].tauEst
-      );
-    }
-    m_joint_state_publisher->publish(std::move(joint_state_msg));
+  for (const auto & joint_name : joint_state_msg->name) {
+    const int joint_index = m_joint_map[joint_name].motor_id;
+    joint_state_msg->position.push_back(
+      state.motorState[joint_index].q
+    );
+    joint_state_msg->velocity.push_back(
+      state.motorState[joint_index].dq
+    );
+    joint_state_msg->effort.push_back(
+      state.motorState[joint_index].tauEst
+    );
   }
+  m_joint_state_publisher->publish(std::move(joint_state_msg));
+}
+
+void UnitreeGo1BridgeNode::publishLowRateSensorState(
+  const unitree_go1_bridge::ControlCommunicator::State &)
+{
+}
+
+void UnitreeGo1BridgeNode::publishHighRateSensorState(
+  const unitree_go1_bridge::ControlCommunicator::State & state)
+{
+  const auto current_time_stamp = this->get_clock()->now();
   {
     auto imu_msg = std::make_unique<sensor_msgs::msg::Imu>();
 
