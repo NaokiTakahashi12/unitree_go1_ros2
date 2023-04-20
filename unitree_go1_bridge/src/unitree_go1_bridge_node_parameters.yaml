@@ -57,41 +57,42 @@ unitree_go1_bridge_node:
     validation:
       lower_bounds<>:
         - 1
-  foot_force_coefficient:
-    read_only: true
-    type: double
-    default_value: 0.164611625
-    description: Convert unit of foot force sensor value to newton
-  foot_force_average_filter:
-    history_length:
-      type: int
-      default_value: 4
-      description: Foot force average filter history length
-      validation:
-        lower_bounds<>:
-          - 1
-  force_sensor_offset_angles:
-    pitch:
+  foot_force:
+    force_coefficient:
+      read_only: true
       type: double
-      default_value: 1.047197551
-      description: Pitch angle of the force sensor
-  foot_force_sensor_frame_id:
-    fr:
-      type: string
-      default_value: fr_foot
-      description: The frame id of the force sensor located in the right foreleg
-    fl:
-      type: string
-      default_value: fl_foot
-      description: The frame id of the force sensor located in the left foreleg
-    rr:
-      type: string
-      default_value: rr_foot
-      description: The frame id of the force sensor located in the right hind leg
-    rl:
-      type: string
-      default_value: rl_foot
-      description: The frame id of the force sensor located in the left hind leg
+      default_value: 0.164611625
+      description: Convert unit of foot force sensor value to newton
+    frame_ids:
+      fr:
+        type: string
+        default_value: fr_foot
+        description: The frame id of the force sensor located in the right foreleg
+      fl:
+        type: string
+        default_value: fl_foot
+        description: The frame id of the force sensor located in the left foreleg
+      rr:
+        type: string
+        default_value: rr_foot
+        description: The frame id of the force sensor located in the right hind leg
+      rl:
+        type: string
+        default_value: rl_foot
+        description: The frame id of the force sensor located in the left hind leg
+    sensor_offset_angles:
+      pitch:
+        type: double
+        default_value: 1.047197551
+        description: Pitch angle of the force sensor
+    average_filter:
+      history_length:
+        type: int
+        default_value: 4
+        description: Foot force average filter history length
+        validation:
+          lower_bounds<>:
+            - 1
   imu_frame_id:
     type: string
     default_value: imu_link
