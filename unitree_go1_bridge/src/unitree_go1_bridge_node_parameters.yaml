@@ -93,10 +93,15 @@ unitree_go1_bridge_node:
         validation:
           lower_bounds<>:
             - 1
-  imu_frame_id:
-    type: string
-    default_value: imu_link
-    description: Controller board IMU frame id
+  imu:
+    frame_id:
+      type: string
+      default_value: imu_link
+      description: Controller board IMU frame id
+    temperature_variance:
+      type: double
+      default_value: 0.1
+      description: IMU temperature variance
   joint_configs:
     fr_hip: &joint_config_default
       name: &joint_name_default

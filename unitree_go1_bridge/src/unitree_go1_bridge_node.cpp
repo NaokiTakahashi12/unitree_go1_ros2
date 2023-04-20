@@ -424,9 +424,10 @@ void UnitreeGo1BridgeNode::publishLowRateSensorState(
   const auto current_time_stamp = this->get_clock()->now();
   {
     auto imu_temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
-    imu_temperature_msg->header.frame_id = m_params->imu_frame_id;
+    imu_temperature_msg->header.frame_id = m_params->imu.frame_id;
     imu_temperature_msg->header.stamp = current_time_stamp;
     imu_temperature_msg->temperature = state.imu.temperature;
+    imu_temperature_msg->variance = m_params->imu.temperature_variance;
     m_imu_temperature_publisher->publish(std::move(imu_temperature_msg));
   }
 }
@@ -438,7 +439,7 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
   {
     auto imu_msg = std::make_unique<sensor_msgs::msg::Imu>();
 
-    imu_msg->header.frame_id = m_params->imu_frame_id;
+    imu_msg->header.frame_id = m_params->imu.frame_id;
     imu_msg->header.stamp = current_time_stamp;
     imu_msg->linear_acceleration.x = state.imu.accelerometer[0];
     imu_msg->linear_acceleration.y = state.imu.accelerometer[1];
