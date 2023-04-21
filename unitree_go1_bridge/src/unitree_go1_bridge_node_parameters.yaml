@@ -49,53 +49,67 @@ unitree_go1_bridge_node:
     validation:
       lower_bounds<>:
         - 1
-  offset_calibration_samples:
-    read_only: true
-    type: int
-    default_value: 128
-    description: Unitree Go1 foot force sensor offset calibration samples
-    validation:
-      lower_bounds<>:
-        - 1
-  foot_force_coefficient:
-    read_only: true
-    type: double
-    default_value: 0.164611625
-    description: Convert unit of foot force sensor value to newton
-  foot_force_average_filter:
-    history_length:
+  foot_force:
+    force_coefficient:
+      read_only: true
+      type: double
+      default_value: 0.164611625
+      description: Convert unit of foot force sensor value to newton
+    publish_raw_data:
+      type: bool
+      default_value: false
+      description: Publish foot force raw data
+    frame_ids:
+      fr:
+        type: string
+        default_value: fr_foot
+        description: The frame id of the force sensor located in the right foreleg
+      fl:
+        type: string
+        default_value: fl_foot
+        description: The frame id of the force sensor located in the left foreleg
+      rr:
+        type: string
+        default_value: rr_foot
+        description: The frame id of the force sensor located in the right hind leg
+      rl:
+        type: string
+        default_value: rl_foot
+        description: The frame id of the force sensor located in the left hind leg
+    offset_calibration_samples:
+      read_only: true
       type: int
-      default_value: 4
-      description: Foot force average filter history length
+      default_value: 128
+      description: Unitree Go1 foot force sensor offset calibration samples
       validation:
         lower_bounds<>:
           - 1
-  force_sensor_offset_angles:
-    pitch:
+    sensor_offset_angles:
+      pitch:
+        type: double
+        default_value: 1.047197551
+        description: Pitch angle of the force sensor
+    average_filter:
+      history_length:
+        type: int
+        default_value: 4
+        description: Foot force average filter history length
+        validation:
+          lower_bounds<>:
+            - 1
+  imu:
+    publish_imu:
+      type: bool
+      default_value: true
+      description: Publish controller board IMU data
+    frame_id:
+      type: string
+      default_value: imu_link
+      description: Controller board IMU frame id
+    temperature_variance:
       type: double
-      default_value: 1.047197551
-      description: Pitch angle of the force sensor
-  foot_force_sensor_frame_id:
-    fr:
-      type: string
-      default_value: fr_foot
-      description: The frame id of the force sensor located in the right foreleg
-    fl:
-      type: string
-      default_value: fl_foot
-      description: The frame id of the force sensor located in the left foreleg
-    rr:
-      type: string
-      default_value: rr_foot
-      description: The frame id of the force sensor located in the right hind leg
-    rl:
-      type: string
-      default_value: rl_foot
-      description: The frame id of the force sensor located in the left hind leg
-  imu_frame_id:
-    type: string
-    default_value: imu_link
-    description: Controller board IMU frame id
+      default_value: 0.1
+      description: IMU temperature variance
   joint_configs:
     fr_hip: &joint_config_default
       name: &joint_name_default

@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <array>
 #include <deque>
+#include <string>
 #include <unordered_map>
 
 #include <rclcpp/rclcpp.hpp>
@@ -79,6 +80,7 @@ private:
 
   std::array<float, m_max_foot_force_size> m_offset_force;
 
+  std::deque<std::string> m_joint_symbols;
   std::deque<std::string> m_joint_names;
   std::unordered_map<std::string, UnitreeGo1MotorParam> m_joint_map;
 
@@ -125,6 +127,7 @@ private:
   void publishLowRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
   void publishHighRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
 
+  void initializeJointSymbols();
   void initializeJointNames();
   void initializeJointMap();
 };
@@ -143,6 +146,7 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
     m_param_listener->get_params()
   );
 
+  initializeJointSymbols();
   initializeJointNames();
   initializeJointMap();
 
@@ -162,47 +166,39 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
     "~/joint_states",
     rclcpp::QoS(5)
   );
-  m_imu_publisher = this->create_publisher<sensor_msgs::msg::Imu>(
-    "~/imu",
-    rclcpp::QoS(5)
-  );
-  m_imu_temperature_publisher = this->create_publisher<sensor_msgs::msg::Temperature>(
-    "~/imu/temperature",
-    rclcpp::QoS(5)
-  );
-
-  m_raw_force_sensor_publishers[0] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-    "~/force/fr/raw",
-    rclcpp::QoS(5)
-  );
-  m_raw_force_sensor_publishers[1] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-    "~/force/fl/raw",
-    rclcpp::QoS(5)
-  );
-  m_raw_force_sensor_publishers[2] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-    "~/force/rr/raw",
-    rclcpp::QoS(5)
-  );
-  m_raw_force_sensor_publishers[3] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-    "~/force/rl/raw",
-    rclcpp::QoS(5)
-  );
-  m_force_sensor_publishers[0] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-    "~/force/fr",
-    rclcpp::QoS(5)
-  );
-  m_force_sensor_publishers[1] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-    "~/force/fl",
-    rclcpp::QoS(5)
-  );
-  m_force_sensor_publishers[2] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-    "~/force/rr",
-    rclcpp::QoS(5)
-  );
-  m_force_sensor_publishers[3] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-    "~/force/rl",
-    rclcpp::QoS(5)
-  );
+  if (m_params->imu.publish_imu) {
+    m_imu_publisher = this->create_publisher<sensor_msgs::msg::Imu>(
+      "~/imu",
+      rclcpp::QoS(5)
+    );
+    m_imu_temperature_publisher = this->create_publisher<sensor_msgs::msg::Temperature>(
+      "~/imu/temperature",
+      rclcpp::QoS(5)
+    );
+  }
+  if (m_joint_symbols.empty()) {
+    throw std::runtime_error("Failed initialize joint symbols");
+  }
+  if (m_raw_force_sensor_publishers.size() != m_joint_symbols.size()) {
+    throw std::runtime_error("Different size of raw force sensor publishers");
+  }
+  if (m_force_sensor_publishers.size() != m_joint_symbols.size()) {
+    throw std::runtime_error("Different size of force sensor publishers");
+  }
+  if (m_params->foot_force.publish_raw_data) {
+    for (unsigned int i = 0; i < m_joint_symbols.size(); ++i) {
+      m_raw_force_sensor_publishers[i] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+        "~/force/" + m_joint_symbols.at(i) + "/raw",
+        rclcpp::QoS(5)
+      );
+    }
+  }
+  for (unsigned int i = 0; i < m_joint_symbols.size(); ++i) {
+    m_force_sensor_publishers[i] = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+      "~/force/" + m_joint_symbols.at(i),
+      rclcpp::QoS(5)
+    );
+  }
 
   m_do_foot_force_calibration_service = this->create_service<std_srvs::srv::Empty>(
     "~/calibrate_foot_force",
@@ -364,7 +360,7 @@ void UnitreeGo1BridgeNode::calibrateFootForce(
 
   for (
     count_samples = 0;
-    count_samples < m_params->offset_calibration_samples;
+    count_samples < m_params->foot_force.offset_calibration_samples;
     ++count_samples
   )
   {
@@ -419,18 +415,27 @@ void UnitreeGo1BridgeNode::publishJointState(
 }
 
 void UnitreeGo1BridgeNode::publishLowRateSensorState(
-  const unitree_go1_bridge::ControlCommunicator::State &)
+  const unitree_go1_bridge::ControlCommunicator::State & state)
 {
+  const auto current_time_stamp = this->get_clock()->now();
+  if (m_imu_temperature_publisher) {
+    auto imu_temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
+    imu_temperature_msg->header.frame_id = m_params->imu.frame_id;
+    imu_temperature_msg->header.stamp = current_time_stamp;
+    imu_temperature_msg->temperature = state.imu.temperature;
+    imu_temperature_msg->variance = m_params->imu.temperature_variance;
+    m_imu_temperature_publisher->publish(std::move(imu_temperature_msg));
+  }
 }
 
 void UnitreeGo1BridgeNode::publishHighRateSensorState(
   const unitree_go1_bridge::ControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
-  {
+  if (m_imu_publisher) {
     auto imu_msg = std::make_unique<sensor_msgs::msg::Imu>();
 
-    imu_msg->header.frame_id = m_params->imu_frame_id;
+    imu_msg->header.frame_id = m_params->imu.frame_id;
     imu_msg->header.stamp = current_time_stamp;
     imu_msg->linear_acceleration.x = state.imu.accelerometer[0];
     imu_msg->linear_acceleration.y = state.imu.accelerometer[1];
@@ -445,16 +450,8 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
     m_imu_publisher->publish(std::move(imu_msg));
   }
   {
-    auto imu_temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
-
-    imu_temperature_msg->header.frame_id = m_params->imu_frame_id;
-    imu_temperature_msg->header.stamp = current_time_stamp;
-    imu_temperature_msg->temperature = state.imu.temperature;
-    m_imu_temperature_publisher->publish(std::move(imu_temperature_msg));
-  }
-  {
-    const double sensor_z_offset_angle = std::sin(m_params->force_sensor_offset_angles.pitch);
-    const double sensor_x_offset_angle = std::cos(m_params->force_sensor_offset_angles.pitch);
+    const double sensor_z_offset_angle = std::sin(m_params->foot_force.sensor_offset_angles.pitch);
+    const double sensor_x_offset_angle = std::cos(m_params->foot_force.sensor_offset_angles.pitch);
 
     std::array<float, m_max_foot_force_size> average_foot_force{0};
 
@@ -471,16 +468,16 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
       ocfsm = std::make_unique<geometry_msgs::msg::Vector3Stamped>();
     }
 
-    force_sensor_msgs[0]->header.frame_id = m_params->foot_force_sensor_frame_id.fr;
-    force_sensor_msgs[1]->header.frame_id = m_params->foot_force_sensor_frame_id.fl;
-    force_sensor_msgs[2]->header.frame_id = m_params->foot_force_sensor_frame_id.rr;
-    force_sensor_msgs[3]->header.frame_id = m_params->foot_force_sensor_frame_id.rl;
+    force_sensor_msgs[0]->header.frame_id = m_params->foot_force.frame_ids.fr;
+    force_sensor_msgs[1]->header.frame_id = m_params->foot_force.frame_ids.fl;
+    force_sensor_msgs[2]->header.frame_id = m_params->foot_force.frame_ids.rr;
+    force_sensor_msgs[3]->header.frame_id = m_params->foot_force.frame_ids.rl;
 
     for (auto && fsm : force_sensor_msgs) {
       fsm->header.stamp = current_time_stamp;
     }
     for (unsigned int i = 0; i < m_max_foot_force_size; ++i) {
-      const float foot_force = m_params->foot_force_coefficient * state.footForce[i];
+      const float foot_force = m_params->foot_force.force_coefficient * state.footForce[i];
       force_sensor_msgs[i]->vector.x = sensor_x_offset_angle * foot_force;
       force_sensor_msgs[i]->vector.z = sensor_z_offset_angle * foot_force;
     }
@@ -490,9 +487,11 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
         force_sensor_msgs[i]->header;
     }
     for (unsigned int i = 0; i < m_raw_force_sensor_publishers.size(); ++i) {
-      m_raw_force_sensor_publishers[i]->publish(
-        std::move(force_sensor_msgs[i])
-      );
+      if (m_raw_force_sensor_publishers[i]) {
+        m_raw_force_sensor_publishers[i]->publish(
+          std::move(force_sensor_msgs[i])
+        );
+      }
     }
     if (!m_offset_calibrated) {
       return;
@@ -504,7 +503,7 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
     }
     if (
       m_foot_force_average_filter_buffer.size() >
-      static_cast<unsigned int>(m_params->foot_force_average_filter.history_length))
+      static_cast<unsigned int>(m_params->foot_force.average_filter.history_length))
     {
       m_foot_force_average_filter_buffer.pop_front();
     }
@@ -516,7 +515,8 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
       average_foot_force[i] = sum / m_foot_force_average_filter_buffer.size();
     }
     for (unsigned int i = 0; i < m_max_foot_force_size; ++i) {
-      const float foot_force = m_params->foot_force_coefficient *
+      const float foot_force =
+        m_params->foot_force.force_coefficient *
         (average_foot_force[i] + m_offset_force[i]);
       offset_calibrated_force_sensor_msgs[i]->vector.x = sensor_x_offset_angle * foot_force;
       offset_calibrated_force_sensor_msgs[i]->vector.z = sensor_z_offset_angle * foot_force;
@@ -527,6 +527,15 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
       );
     }
   }
+}
+
+void UnitreeGo1BridgeNode::initializeJointSymbols()
+{
+  m_joint_symbols.clear();
+  m_joint_symbols.push_back("fr");
+  m_joint_symbols.push_back("fl");
+  m_joint_symbols.push_back("rr");
+  m_joint_symbols.push_back("rl");
 }
 
 void UnitreeGo1BridgeNode::initializeJointNames()
