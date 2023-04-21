@@ -49,20 +49,16 @@ unitree_go1_bridge_node:
     validation:
       lower_bounds<>:
         - 1
-  offset_calibration_samples:
-    read_only: true
-    type: int
-    default_value: 128
-    description: Unitree Go1 foot force sensor offset calibration samples
-    validation:
-      lower_bounds<>:
-        - 1
   foot_force:
     force_coefficient:
       read_only: true
       type: double
       default_value: 0.164611625
       description: Convert unit of foot force sensor value to newton
+    publish_raw_data:
+      type: bool
+      default_value: false
+      description: Publish foot force raw data
     frame_ids:
       fr:
         type: string
@@ -80,6 +76,14 @@ unitree_go1_bridge_node:
         type: string
         default_value: rl_foot
         description: The frame id of the force sensor located in the left hind leg
+    offset_calibration_samples:
+      read_only: true
+      type: int
+      default_value: 128
+      description: Unitree Go1 foot force sensor offset calibration samples
+      validation:
+        lower_bounds<>:
+          - 1
     sensor_offset_angles:
       pitch:
         type: double
