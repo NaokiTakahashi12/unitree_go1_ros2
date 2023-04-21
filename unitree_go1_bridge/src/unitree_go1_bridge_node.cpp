@@ -166,15 +166,16 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
     "~/joint_states",
     rclcpp::QoS(5)
   );
-  m_imu_publisher = this->create_publisher<sensor_msgs::msg::Imu>(
-    "~/imu",
-    rclcpp::QoS(5)
-  );
-  m_imu_temperature_publisher = this->create_publisher<sensor_msgs::msg::Temperature>(
-    "~/imu/temperature",
-    rclcpp::QoS(5)
-  );
-
+  if (m_params->imu.publish_imu) {
+    m_imu_publisher = this->create_publisher<sensor_msgs::msg::Imu>(
+      "~/imu",
+      rclcpp::QoS(5)
+    );
+    m_imu_temperature_publisher = this->create_publisher<sensor_msgs::msg::Temperature>(
+      "~/imu/temperature",
+      rclcpp::QoS(5)
+    );
+  }
   if (m_joint_symbols.empty()) {
     throw std::runtime_error("Failed initialize joint symbols");
   }

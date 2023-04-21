@@ -98,6 +98,10 @@ unitree_go1_bridge_node:
           lower_bounds<>:
             - 1
   imu:
+    publish_imu:
+      type: bool
+      default_value: true
+      description: Publish controller board IMU data
     frame_id:
       type: string
       default_value: imu_link
