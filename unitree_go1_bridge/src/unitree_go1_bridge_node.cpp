@@ -445,7 +445,7 @@ void UnitreeGo1BridgeNode::publishLowRateSensorState(
   const unitree_go1_bridge::ControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
-  if (m_temperatures_publisher) {
+  if (m_temperatures_publisher && m_params->motor.publish_temperatures) {
     constexpr unsigned int max_temperature_sensors = 1 + 12;  // IMU temperature + Motor temperature
     constexpr unsigned int imu_temperature_index = 0;
     constexpr unsigned int motors_temperatures_index = 1;
@@ -479,7 +479,7 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
   const unitree_go1_bridge::ControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
-  if (m_imu_publisher) {
+  if (m_imu_publisher && m_params->imu.publish_imu) {
     auto imu_msg = std::make_unique<sensor_msgs::msg::Imu>();
 
     imu_msg->header.frame_id = m_params->imu.frame_id;

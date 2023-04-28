@@ -112,6 +112,10 @@ unitree_go1_bridge_node:
           lower_bounds<>:
             - 1
   motor:
+    publish_temperatures:
+      type: bool
+      default_value: true
+      description: Publish motor temperatures data
     temperature_variance:
       type: double
       default_value: 0.1
