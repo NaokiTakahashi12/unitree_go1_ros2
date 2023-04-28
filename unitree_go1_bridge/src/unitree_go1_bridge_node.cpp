@@ -265,9 +265,36 @@ UnitreeGo1BridgeNode::~UnitreeGo1BridgeNode()
 
 void UnitreeGo1BridgeNode::bridgeCallback()
 {
+  static uint32_t unitree_go1_time_tick = 0;
   std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
-
   const auto state = m_communicator->receive();
+  if (state.tick == unitree_go1_time_tick) {
+    RCLCPP_WARN_STREAM(
+      this->get_logger(),
+      "Communication failure is detected. Try again after "
+        << m_params->connection_retry_interval_time_ms
+        << " [ms]"
+    );
+    std::this_thread::sleep_for(
+      std::chrono::milliseconds(
+        m_params->connection_retry_interval_time_ms
+      )
+    );
+    // Communication is not restored unless consecutive transmissions
+    // are made within a short period of time.
+    for (int i = 0; i < m_params->reconnection_retries; ++i) {
+      m_communicator->send();
+      const auto try_tick = m_communicator->receive().tick;
+      if (try_tick != unitree_go1_time_tick) {
+        RCLCPP_INFO(this->get_logger(), "Communication was successfully restored");
+        return;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));  // Minimum communication interval
+    }
+    RCLCPP_WARN(this->get_logger(), "Failed to restore communication");
+    return;
+  }
+  unitree_go1_time_tick = state.tick;
   publishJointState(state);
   {
     std::lock_guard<std::mutex> trajectory_lock{m_joint_trajectory_mutex};
