@@ -45,9 +45,9 @@
 
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/imu.hpp>
-#include <sensor_msgs/msg/temperature.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <legged_motion_msgs/msg/temperatures.hpp>
 
 #include <std_srvs/srv/empty.hpp>
 
@@ -100,7 +100,7 @@ private:
 
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr m_imu_publisher;
-  rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_imu_temperature_publisher;
+  rclcpp::Publisher<legged_motion_msgs::msg::Temperatures>::SharedPtr m_temperatures_publisher;
   std::array<rclcpp::Publisher<
       geometry_msgs::msg::Vector3Stamped>::SharedPtr, m_max_foot_force_size
   > m_raw_force_sensor_publishers,
@@ -171,8 +171,8 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
       "~/imu",
       rclcpp::QoS(5)
     );
-    m_imu_temperature_publisher = this->create_publisher<sensor_msgs::msg::Temperature>(
-      "~/imu/temperature",
+    m_temperatures_publisher = this->create_publisher<legged_motion_msgs::msg::Temperatures>(
+      "~/temperatures",
       rclcpp::QoS(5)
     );
   }
@@ -418,13 +418,33 @@ void UnitreeGo1BridgeNode::publishLowRateSensorState(
   const unitree_go1_bridge::ControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
-  if (m_imu_temperature_publisher) {
-    auto imu_temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
-    imu_temperature_msg->header.frame_id = m_params->imu.frame_id;
-    imu_temperature_msg->header.stamp = current_time_stamp;
-    imu_temperature_msg->temperature = state.imu.temperature;
-    imu_temperature_msg->variance = m_params->imu.temperature_variance;
-    m_imu_temperature_publisher->publish(std::move(imu_temperature_msg));
+  if (m_temperatures_publisher) {
+    constexpr unsigned int max_temperature_sensors = 1 + 12;  // IMU temperature + Motor temperature
+    constexpr unsigned int imu_temperature_index = 0;
+    constexpr unsigned int motors_temperatures_index = 1;
+
+    auto lm_temperatures_msg = std::make_unique<legged_motion_msgs::msg::Temperatures>();
+    {
+      lm_temperatures_msg->name.resize(max_temperature_sensors);
+      lm_temperatures_msg->temperature.resize(max_temperature_sensors);
+      lm_temperatures_msg->variance.resize(max_temperature_sensors);
+    }
+    lm_temperatures_msg->stamp = current_time_stamp;
+
+    lm_temperatures_msg->name[imu_temperature_index] = m_params->imu.frame_id;
+    lm_temperatures_msg->variance[imu_temperature_index] = m_params->imu.temperature_variance;
+    lm_temperatures_msg->temperature[imu_temperature_index] = state.imu.temperature;
+
+    unsigned int msg_index = motors_temperatures_index;
+    for (const auto &[name, motor_param] : m_joint_map) {
+      lm_temperatures_msg->name[msg_index] = name;
+      lm_temperatures_msg->temperature[msg_index] =
+        state.motorState[motor_param.motor_id].temperature;
+      lm_temperatures_msg->variance[msg_index] = m_params->motor.temperature_variance;
+      msg_index++;
+    }
+
+    m_temperatures_publisher->publish(std::move(lm_temperatures_msg));
   }
 }
 
@@ -559,6 +579,9 @@ void UnitreeGo1BridgeNode::initializeJointNames()
   m_joint_names.shrink_to_fit();
 }
 
+//! @param [out] param
+//! @param [in] id
+//! @param [in] joint_config_param
 template<typename T>
 void setUnitreeGo1MotorParamFromGeneratedParam(
   UnitreeGo1MotorParam & param, const int id,

@@ -97,6 +97,11 @@ unitree_go1_bridge_node:
         validation:
           lower_bounds<>:
             - 1
+  motor:
+    temperature_variance:
+      type: double
+      default_value: 0.1
+      description: Motor temperature variance
   imu:
     publish_imu:
       type: bool
