@@ -49,6 +49,20 @@ unitree_go1_bridge_node:
     validation:
       lower_bounds<>:
         - 1
+  connection_retry_interval_time_ms:
+    type: int
+    default_value: 1000
+    description: The waiting time(ms) in case of communication failure. (It is not a timeout)
+    validation:
+      lower_bounds<>:
+        - -1
+  reconnection_retries:
+    type: int
+    default_value: 5
+    description: Count of reconnection process attempts
+    validation:
+      lower_bounds<>:
+        - 1
   foot_force:
     force_coefficient:
       read_only: true
@@ -97,6 +111,15 @@ unitree_go1_bridge_node:
         validation:
           lower_bounds<>:
             - 1
+  motor:
+    publish_temperatures:
+      type: bool
+      default_value: true
+      description: Publish motor temperatures data
+    temperature_variance:
+      type: double
+      default_value: 0.1
+      description: Motor temperature variance
   imu:
     publish_imu:
       type: bool

@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>unitree_go1_bridge</name>
-  <version>0.4.0</version>
+  <version>0.6.0</version>
   <description>Unitree Go1 bridge</description>
   <maintainer email="naoki.takahashi060@gmail.com">Naoki Takahashi</maintainer>
   <license>BSD 3-Clause</license>
@@ -13,6 +13,7 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>trajectory_msgs</depend>
+  <depend>legged_motion_msgs</depend>
   <depend>std_srvs</depend>
   <build_depend>generate_parameter_library</build_depend>
   <test_depend>ament_lint_auto</test_depend>
