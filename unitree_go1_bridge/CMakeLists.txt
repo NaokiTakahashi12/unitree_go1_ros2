@@ -32,6 +32,10 @@ target_link_libraries(unitree_go1_communicator
     UnitreeLeggedSDK::UnitreeLeggedSDK
     ${UnitreeLeggedSDK_LIBRARY}
 )
+target_compile_features(unitree_go1_communicator
+  PUBLIC
+    cxx_std_17
+)
 set_property(
   TARGET unitree_go1_communicator
   PROPERTY
