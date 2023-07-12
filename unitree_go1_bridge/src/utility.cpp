@@ -32,9 +32,8 @@
 
 namespace unitree_go1_bridge::utility
 {
-namespace unitree_legged_sdk = UNITREE_LEGGED_SDK;
-
-void zeroResetLowCommand(ControlCommunicator::Command & command)
+void zeroResetLowCommand(
+  ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::Command & command)
 {
   for (auto && head : command.head) {
     head = 0;
@@ -49,7 +48,8 @@ void zeroResetLowCommand(ControlCommunicator::Command & command)
   }
 }
 
-void resetMotorCommand(ControlCommunicator::MotorCommand & motor_command)
+void resetMotorCommand(
+  ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::MotorCommand & motor_command)
 {
   motor_command.mode = 0;
   motor_command.q = unitree_legged_sdk::PosStopF;

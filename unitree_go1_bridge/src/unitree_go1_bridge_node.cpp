@@ -53,6 +53,7 @@
 
 #include <unitree_go1_bridge/utility.hpp>
 #include <unitree_go1_bridge/control_communicator.hpp>
+#include <unitree_go1_bridge/low_level_control_communicator.hpp>
 
 #include <unitree_go1_bridge_node_parameters.hpp>
 
@@ -88,7 +89,7 @@ private:
 
   std::mutex m_joint_trajectory_mutex, m_calibration_mutex;
 
-  std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
+  std::unique_ptr<unitree_go1_bridge::LowLevelControlCommunicator> m_communicator;
 
   trajectory_msgs::msg::JointTrajectory::ConstSharedPtr m_joint_trajectory;
 
@@ -123,9 +124,9 @@ private:
     std_srvs::srv::Empty::Response::SharedPtr
   );
 
-  void publishJointState(const unitree_go1_bridge::ControlCommunicator::State &);
-  void publishLowRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
-  void publishHighRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
+  void publishJointState(const unitree_go1_bridge::LowLevelControlCommunicator::State &);
+  void publishLowRateSensorState(const unitree_go1_bridge::LowLevelControlCommunicator::State &);
+  void publishHighRateSensorState(const unitree_go1_bridge::LowLevelControlCommunicator::State &);
 
   void initializeJointSymbols();
   void initializeJointNames();
@@ -150,7 +151,7 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
   initializeJointNames();
   initializeJointMap();
 
-  m_communicator = std::make_unique<unitree_go1_bridge::ControlCommunicator>();
+  m_communicator = std::make_unique<unitree_go1_bridge::LowLevelControlCommunicator>();
 
   m_joint_trajectory_subscriber = this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
     "~/joint_trajectory",
@@ -318,7 +319,7 @@ void UnitreeGo1BridgeNode::bridgeCallback()
         joint_trajectory_count++;
         continue;
       }
-      unitree_go1_bridge::ControlCommunicator::MotorCommand motor_command;
+      unitree_go1_bridge::LowLevelControlCommunicator::MotorCommand motor_command;
       unitree_go1_bridge::utility::resetMotorCommand(motor_command);
 
       decltype(auto) joint_config = m_joint_map[joint_name];
@@ -417,7 +418,7 @@ void UnitreeGo1BridgeNode::calibrateFootForce(
 }
 
 void UnitreeGo1BridgeNode::publishJointState(
-  const unitree_go1_bridge::ControlCommunicator::State & state)
+  const unitree_go1_bridge::LowLevelControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
   auto joint_state_msg = std::make_unique<sensor_msgs::msg::JointState>();
@@ -442,7 +443,7 @@ void UnitreeGo1BridgeNode::publishJointState(
 }
 
 void UnitreeGo1BridgeNode::publishLowRateSensorState(
-  const unitree_go1_bridge::ControlCommunicator::State & state)
+  const unitree_go1_bridge::LowLevelControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
   if (m_temperatures_publisher && m_params->motor.publish_temperatures) {
@@ -476,7 +477,7 @@ void UnitreeGo1BridgeNode::publishLowRateSensorState(
 }
 
 void UnitreeGo1BridgeNode::publishHighRateSensorState(
-  const unitree_go1_bridge::ControlCommunicator::State & state)
+  const unitree_go1_bridge::LowLevelControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
   if (m_imu_publisher && m_params->imu.publish_imu) {

@@ -21,6 +21,7 @@ add_library(unitree_go1_communicator SHARED)
 target_sources(unitree_go1_communicator
   PUBLIC
     src/control_communicator.cpp
+    src/low_level_control_communicator.cpp
     src/utility.cpp
 )
 target_include_directories(unitree_go1_communicator

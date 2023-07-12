@@ -37,11 +37,24 @@
 
 namespace unitree_go1_bridge
 {
-ControlCommunicator::ControlCommunicator()
+template<uint8_t Level>
+ControlCommunicator<Level>::ControlCommunicator()
+: ControlCommunicator(
+    static_cast<uint16_t>(8090),
+    unitree_legged_sdk::UDP_SERVER_IP_BASIC,
+    unitree_legged_sdk::UDP_SERVER_PORT)
+{
+}
+
+template<uint8_t Level>
+ControlCommunicator<Level>::ControlCommunicator(
+  const uint16_t local_port,
+  const std::string & target_ip_address,
+  const uint16_t target_port)
 : m_control_level(unitree_legged_sdk::LOWLEVEL),
-  m_local_port(static_cast<uint16_t>(8090)),
-  m_target_port(static_cast<uint16_t>(unitree_legged_sdk::UDP_SERVER_PORT)),
-  m_target_ip_address(unitree_legged_sdk::UDP_SERVER_IP_BASIC)
+  m_local_port(local_port),
+  m_target_port(target_port),
+  m_target_ip_address(target_ip_address)
 {
   ignoreScreenOut();
   m_unitree_safety = std::make_unique<unitree_legged_sdk::Safety>(
@@ -62,7 +75,8 @@ ControlCommunicator::ControlCommunicator()
   m_unitree_udp->InitCmdData(*m_command);
 }
 
-ControlCommunicator::~ControlCommunicator()
+template<uint8_t Level>
+ControlCommunicator<Level>::~ControlCommunicator()
 {
   ignoreScreenOut();
   if (m_unitree_udp) {
@@ -74,7 +88,8 @@ ControlCommunicator::~ControlCommunicator()
   enableScreenOut();
 }
 
-void ControlCommunicator::setMotorCommand(
+template<>
+void ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::setMotorCommand(
   const MotorCommand & motor_command,
   const unsigned int motor_index)
 {
@@ -84,7 +99,8 @@ void ControlCommunicator::setMotorCommand(
   m_command->motorCmd[motor_index] = motor_command;
 }
 
-const ControlCommunicator::State ControlCommunicator::getLatestState()
+template<uint8_t Level>
+const typename ControlCommunicator<Level>::State ControlCommunicator<Level>::getLatestState()
 {
   if (!m_state) {
     throw std::runtime_error("Latest state is nullptr");
@@ -92,7 +108,8 @@ const ControlCommunicator::State ControlCommunicator::getLatestState()
   return *m_state;
 }
 
-void ControlCommunicator::send()
+template<uint8_t Level>
+void ControlCommunicator<Level>::send()
 {
   m_unitree_udp->GetRecv(*m_state);
 
@@ -111,27 +128,33 @@ void ControlCommunicator::send()
   m_unitree_udp->Send();
 }
 
-//! @param [out] received_state
-void ControlCommunicator::receive(State & received_state)
+template<uint8_t Level>
+void ControlCommunicator<Level>::receive(State & received_state)
 {
   m_unitree_udp->Recv();
   m_unitree_udp->GetRecv(received_state);
 }
 
-const ControlCommunicator::State ControlCommunicator::receive()
+template<uint8_t Level>
+const typename ControlCommunicator<Level>::State ControlCommunicator<Level>::receive()
 {
   m_unitree_udp->Recv();
   m_unitree_udp->GetRecv(*m_state);
   return *m_state;
 }
 
-void ControlCommunicator::ignoreScreenOut()
+template<uint8_t Level>
+void ControlCommunicator<Level>::ignoreScreenOut()
 {
   std::cout.setstate(std::ios_base::failbit);
 }
 
-void ControlCommunicator::enableScreenOut()
+template<uint8_t Level>
+void ControlCommunicator<Level>::enableScreenOut()
 {
   std::cout.clear();
 }
+
+template class ControlCommunicator<unitree_legged_sdk::LOWLEVEL>;
+template class ControlCommunicator<unitree_legged_sdk::HIGHLEVEL>;
 }  // namespace unitree_go1_bridge
