@@ -51,7 +51,7 @@ ControlCommunicator<Level>::ControlCommunicator(
   const uint16_t local_port,
   const std::string & target_ip_address,
   const uint16_t target_port)
-: m_control_level(unitree_legged_sdk::LOWLEVEL),
+: m_control_level(Level),
   m_local_port(local_port),
   m_target_port(target_port),
   m_target_ip_address(target_ip_address)
@@ -71,7 +71,7 @@ ControlCommunicator<Level>::ControlCommunicator(
   m_state = std::make_unique<State>();
 
   m_command = std::make_unique<Command>();
-  utility::zeroResetLowCommand(*m_command);
+  zeroResetLowCommand(*m_command);
   m_unitree_udp->InitCmdData(*m_command);
 }
 
@@ -99,6 +99,14 @@ void ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::setMotorCommand(
   m_command->motorCmd[motor_index] = motor_command;
 }
 
+template<>
+void ControlCommunicator<unitree_legged_sdk::HIGHLEVEL>::setMotorCommand(
+  const MotorCommand &,
+  const unsigned int)
+{
+  throw std::logic_error("Not supported");
+}
+
 template<uint8_t Level>
 const typename ControlCommunicator<Level>::State ControlCommunicator<Level>::getLatestState()
 {
@@ -108,8 +116,8 @@ const typename ControlCommunicator<Level>::State ControlCommunicator<Level>::get
   return *m_state;
 }
 
-template<uint8_t Level>
-void ControlCommunicator<Level>::send()
+template<>
+void ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::send()
 {
   m_unitree_udp->GetRecv(*m_state);
 
@@ -124,6 +132,14 @@ void ControlCommunicator<Level>::send()
   if (protect_result < 0) {
     throw std::runtime_error("Error of unitree safety");
   }
+  m_unitree_udp->SetSend(*m_command);
+  m_unitree_udp->Send();
+}
+
+template<>
+void ControlCommunicator<unitree_legged_sdk::HIGHLEVEL>::send()
+{
+  m_unitree_udp->GetRecv(*m_state);
   m_unitree_udp->SetSend(*m_command);
   m_unitree_udp->Send();
 }
@@ -153,6 +169,22 @@ template<uint8_t Level>
 void ControlCommunicator<Level>::enableScreenOut()
 {
   std::cout.clear();
+}
+
+template<uint8_t Level>
+void ControlCommunicator<Level>::zeroResetLowCommand(Command & command)
+{
+  for (auto && head : command.head) {
+    head = 0;
+  }
+  command.levelFlag = 0;
+  command.frameReserve = 0;
+  for (auto && sn : command.SN) {
+    sn = 0;
+  }
+  for (auto && version : command.version) {
+    version = 0;
+  }
 }
 
 template class ControlCommunicator<unitree_legged_sdk::LOWLEVEL>;

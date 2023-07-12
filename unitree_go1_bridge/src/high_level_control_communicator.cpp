@@ -27,19 +27,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <unitree_go1_bridge/utility.hpp>
+#include <unitree_go1_bridge/high_level_control_communicator.hpp>
 
 
-namespace unitree_go1_bridge::utility
+namespace unitree_go1_bridge
 {
-void resetMotorCommand(
-  ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::MotorCommand & motor_command)
+HighLevelControlCommunicator::HighLevelControlCommunicator()
+: ControlCommunicator(
+    static_cast<uint16_t>(8090),
+    unitree_legged_sdk::UDP_SERVER_IP_SPORT,
+    static_cast<uint16_t>(8082))
 {
-  motor_command.mode = 0;
-  motor_command.q = unitree_legged_sdk::PosStopF;
-  motor_command.dq = unitree_legged_sdk::VelStopF;
-  motor_command.tau = 0;
-  motor_command.Kp = 0;
-  motor_command.Kd = 0;
 }
-}  // namespace unitree_go1_bridge::utility
+
+HighLevelControlCommunicator::~HighLevelControlCommunicator() {}
+}
