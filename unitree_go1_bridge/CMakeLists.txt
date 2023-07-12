@@ -45,7 +45,7 @@ set_property(
 )
 
 ament_auto_add_library(unitree_go1_bridge SHARED
-  src/unitree_go1_bridge_node.cpp
+  src/unitree_go1_low_level_bridge_node.cpp
 )
 target_link_libraries(unitree_go1_bridge
   unitree_go1_communicator
