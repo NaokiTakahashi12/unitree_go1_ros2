@@ -42,4 +42,52 @@ void resetMotorCommand(
   motor_command.Kp = 0;
   motor_command.Kd = 0;
 }
+
+void zeroResetLowCommand(
+  ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::Command & command)
+{
+  for (auto && head : command.head) {
+    head = 0;
+  }
+  command.levelFlag = 0;
+  command.frameReserve = 0;
+  for (auto && sn : command.SN) {
+    sn = 0;
+  }
+  for (auto && version : command.version) {
+    version = 0;
+  }
+}
+
+void zeroResetHighCommand(
+  ControlCommunicator<unitree_legged_sdk::HIGHLEVEL>::Command & command)
+{
+  for (auto && head : command.head) {
+    head = 0;
+  }
+  command.levelFlag = 0;
+  command.frameReserve = 0;
+  for (auto && sn : command.SN) {
+    sn = 0;
+  }
+  for (auto && version : command.version) {
+    version = 0;
+  }
+  command.mode = 0;
+  command.gaitType = 0;
+  command.speedLevel = 0;
+  command.footRaiseHeight = 0.0;
+  command.bodyHeight = 0.0;
+  for (auto && position : command.position) {
+    position = 0.0;
+  }
+  for (auto && euler_angle : command.euler) {
+    euler_angle = 0.0;
+  }
+  for (auto && velocity : command.velocity) {
+    velocity = 0.0;
+  }
+  command.yawSpeed = 0.0;
+}
+
 }  // namespace unitree_go1_bridge::utility

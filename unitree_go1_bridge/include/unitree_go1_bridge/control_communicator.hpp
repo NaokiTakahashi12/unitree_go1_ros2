@@ -73,6 +73,8 @@ public:
   );
   virtual ~ControlCommunicator();
 
+  Command & command();
+
   void setMotorCommand(const MotorCommand &, const unsigned int motor_index);
 
   const State getLatestState();
@@ -100,8 +102,6 @@ private:
   void ignoreScreenOut();
   void enableScreenOut();
 
-  //! @param [in, out] command
-  void zeroResetLowCommand(Command &);
-
+  void zeroResetCommand(Command &);
 };
 }  // namespace unitree_go1_bridge

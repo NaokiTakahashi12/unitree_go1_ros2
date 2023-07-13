@@ -41,4 +41,10 @@ namespace unitree_legged_sdk = UNITREE_LEGGED_SDK;
 
 void resetMotorCommand(
   ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::MotorCommand & motor_command);
+
+void zeroResetLowCommand(
+  ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::Command &);
+
+void zeroResetHighCommand(
+  ControlCommunicator<unitree_legged_sdk::HIGHLEVEL>::Command &);
 }  // namespace unitree_go1_bridge::utility

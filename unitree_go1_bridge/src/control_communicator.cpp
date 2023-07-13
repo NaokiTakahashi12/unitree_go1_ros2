@@ -71,7 +71,7 @@ ControlCommunicator<Level>::ControlCommunicator(
   m_state = std::make_unique<State>();
 
   m_command = std::make_unique<Command>();
-  zeroResetLowCommand(*m_command);
+  zeroResetCommand(*m_command);
   m_unitree_udp->InitCmdData(*m_command);
 }
 
@@ -86,6 +86,12 @@ ControlCommunicator<Level>::~ControlCommunicator()
     m_unitree_safety.reset();
   }
   enableScreenOut();
+}
+
+template<uint8_t Level>
+typename ControlCommunicator<Level>::Command & ControlCommunicator<Level>::command()
+{
+  return *m_command;
 }
 
 template<>
@@ -172,18 +178,14 @@ void ControlCommunicator<Level>::enableScreenOut()
 }
 
 template<uint8_t Level>
-void ControlCommunicator<Level>::zeroResetLowCommand(Command & command)
+void ControlCommunicator<Level>::zeroResetCommand(Command & command)
 {
-  for (auto && head : command.head) {
-    head = 0;
-  }
-  command.levelFlag = 0;
-  command.frameReserve = 0;
-  for (auto && sn : command.SN) {
-    sn = 0;
-  }
-  for (auto && version : command.version) {
-    version = 0;
+  if constexpr (Level == unitree_legged_sdk::LOWLEVEL) {
+    utility::zeroResetLowCommand(command);
+  } else if constexpr (Level == unitree_legged_sdk::HIGHLEVEL) {
+    utility::zeroResetHighCommand(command);
+  } else {
+    throw std::logic_error("Invalid Level");
   }
 }
 
