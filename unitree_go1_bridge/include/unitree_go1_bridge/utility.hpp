@@ -32,12 +32,19 @@
 #include <unitree_legged_sdk/comm.h>
 
 #include "control_communicator.hpp"
+#include "low_level_control_communicator.hpp"
 
 
 namespace unitree_go1_bridge::utility
 {
-//! @param [in, out] command
-void zeroResetLowCommand(ControlCommunicator::Command & command);
+namespace unitree_legged_sdk = UNITREE_LEGGED_SDK;
 
-void resetMotorCommand(ControlCommunicator::MotorCommand & motor_command);
+void resetMotorCommand(
+  ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::MotorCommand & motor_command);
+
+void zeroResetLowCommand(
+  ControlCommunicator<unitree_legged_sdk::LOWLEVEL>::Command &);
+
+void zeroResetHighCommand(
+  ControlCommunicator<unitree_legged_sdk::HIGHLEVEL>::Command &);
 }  // namespace unitree_go1_bridge::utility

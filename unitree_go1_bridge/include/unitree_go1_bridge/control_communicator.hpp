@@ -40,15 +40,40 @@ namespace unitree_go1_bridge
 {
 namespace unitree_legged_sdk = UNITREE_LEGGED_SDK;
 
+template<uint8_t Level>
+struct LevelMessage {};
+
+template<>
+struct LevelMessage<unitree_legged_sdk::LOWLEVEL>
+{
+  using Command = unitree_legged_sdk::LowCmd;
+  using State = unitree_legged_sdk::LowState;
+};
+
+template<>
+struct LevelMessage<unitree_legged_sdk::HIGHLEVEL>
+{
+  using Command = unitree_legged_sdk::HighCmd;
+  using State = unitree_legged_sdk::HighState;
+};
+
+template<uint8_t Level>
 class ControlCommunicator
 {
 public:
-  using Command = unitree_legged_sdk::LowCmd;
+  using Command = typename LevelMessage<Level>::Command;
   using MotorCommand = unitree_legged_sdk::MotorCmd;
-  using State = unitree_legged_sdk::LowState;
+  using State = typename LevelMessage<Level>::State;
 
   ControlCommunicator();
-  ~ControlCommunicator();
+  ControlCommunicator(
+    const uint16_t local_port,
+    const std::string & target_ip_address,
+    const uint16_t target_port
+  );
+  virtual ~ControlCommunicator();
+
+  Command & command();
 
   void setMotorCommand(const MotorCommand &, const unsigned int motor_index);
 
@@ -56,16 +81,18 @@ public:
 
   void send();
 
+  //! @param [out] received_state
   void receive(State &);
   const State receive();
 
-private:
+protected:
   uint8_t m_control_level;
   uint16_t m_local_port;
   uint16_t m_target_port;
 
   std::string m_target_ip_address;
 
+private:
   std::unique_ptr<unitree_legged_sdk::UDP> m_unitree_udp;
   std::unique_ptr<unitree_legged_sdk::Safety> m_unitree_safety;
 
@@ -74,5 +101,7 @@ private:
 
   void ignoreScreenOut();
   void enableScreenOut();
+
+  void zeroResetCommand(Command &);
 };
 }  // namespace unitree_go1_bridge

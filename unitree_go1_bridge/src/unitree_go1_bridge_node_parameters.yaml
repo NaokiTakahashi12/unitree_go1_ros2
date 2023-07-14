@@ -63,6 +63,9 @@ unitree_go1_bridge_node:
     validation:
       gt_eq<>:
         - 1
+  enable_debug_joy:
+    type: bool
+    default_value: true
   foot_force:
     force_coefficient:
       read_only: true

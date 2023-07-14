@@ -21,6 +21,8 @@ add_library(unitree_go1_communicator SHARED)
 target_sources(unitree_go1_communicator
   PUBLIC
     src/control_communicator.cpp
+    src/low_level_control_communicator.cpp
+    src/high_level_control_communicator.cpp
     src/utility.cpp
 )
 target_include_directories(unitree_go1_communicator
@@ -43,7 +45,8 @@ set_property(
 )
 
 ament_auto_add_library(unitree_go1_bridge SHARED
-  src/unitree_go1_bridge_node.cpp
+  src/unitree_go1_low_level_bridge_node.cpp
+  src/unitree_go1_high_level_bridge_node.cpp
 )
 target_link_libraries(unitree_go1_bridge
   unitree_go1_communicator
@@ -55,8 +58,12 @@ target_compile_features(unitree_go1_bridge
     cxx_std_17
 )
 rclcpp_components_register_node(unitree_go1_bridge
-  PLUGIN "unitree_go1_bridge::UnitreeGo1BridgeNode"
-  EXECUTABLE unitree_go1_bridge_node
+  PLUGIN "unitree_go1_bridge::UnitreeGo1LowLevelBridgeNode"
+  EXECUTABLE unitree_go1_low_level_bridge_node
+)
+rclcpp_components_register_node(unitree_go1_bridge
+  PLUGIN "unitree_go1_bridge::UnitreeGo1HighLevelBridgeNode"
+  EXECUTABLE unitree_go1_high_level_bridge_node
 )
 
 install(

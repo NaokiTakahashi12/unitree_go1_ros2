@@ -53,6 +53,7 @@
 
 #include <unitree_go1_bridge/utility.hpp>
 #include <unitree_go1_bridge/control_communicator.hpp>
+#include <unitree_go1_bridge/low_level_control_communicator.hpp>
 
 #include <unitree_go1_bridge_node_parameters.hpp>
 
@@ -66,11 +67,11 @@ struct UnitreeGo1MotorParam
   float max_velocity, max_torque;
 };
 
-class UnitreeGo1BridgeNode : public rclcpp::Node
+class UnitreeGo1LowLevelBridgeNode : public rclcpp::Node
 {
 public:
-  explicit UnitreeGo1BridgeNode(const rclcpp::NodeOptions &);
-  ~UnitreeGo1BridgeNode();
+  explicit UnitreeGo1LowLevelBridgeNode(const rclcpp::NodeOptions &);
+  ~UnitreeGo1LowLevelBridgeNode();
 
 private:
   static constexpr int m_max_foot_force_size = 4;
@@ -88,7 +89,7 @@ private:
 
   std::mutex m_joint_trajectory_mutex, m_calibration_mutex;
 
-  std::unique_ptr<unitree_go1_bridge::ControlCommunicator> m_communicator;
+  std::unique_ptr<unitree_go1_bridge::LowLevelControlCommunicator> m_communicator;
 
   trajectory_msgs::msg::JointTrajectory::ConstSharedPtr m_joint_trajectory;
 
@@ -123,16 +124,16 @@ private:
     std_srvs::srv::Empty::Response::SharedPtr
   );
 
-  void publishJointState(const unitree_go1_bridge::ControlCommunicator::State &);
-  void publishLowRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
-  void publishHighRateSensorState(const unitree_go1_bridge::ControlCommunicator::State &);
+  void publishJointState(const unitree_go1_bridge::LowLevelControlCommunicator::State &);
+  void publishLowRateSensorState(const unitree_go1_bridge::LowLevelControlCommunicator::State &);
+  void publishHighRateSensorState(const unitree_go1_bridge::LowLevelControlCommunicator::State &);
 
   void initializeJointSymbols();
   void initializeJointNames();
   void initializeJointMap();
 };
 
-UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_options)
+UnitreeGo1LowLevelBridgeNode::UnitreeGo1LowLevelBridgeNode(const rclcpp::NodeOptions & node_options)
 : rclcpp::Node(m_this_node_name, node_options),
   m_offset_calibrated(false),
   m_offset_force({0})
@@ -150,13 +151,13 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
   initializeJointNames();
   initializeJointMap();
 
-  m_communicator = std::make_unique<unitree_go1_bridge::ControlCommunicator>();
+  m_communicator = std::make_unique<unitree_go1_bridge::LowLevelControlCommunicator>();
 
   m_joint_trajectory_subscriber = this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
     "~/joint_trajectory",
     rclcpp::QoS(5),
     ::std::bind(
-      &UnitreeGo1BridgeNode::jointTrajectoryCallback,
+      &UnitreeGo1LowLevelBridgeNode::jointTrajectoryCallback,
       this,
       ::std::placeholders::_1
     )
@@ -203,7 +204,7 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
   m_do_foot_force_calibration_service = this->create_service<std_srvs::srv::Empty>(
     "~/calibrate_foot_force",
     ::std::bind(
-      &UnitreeGo1BridgeNode::calibrateFootForce,
+      &UnitreeGo1LowLevelBridgeNode::calibrateFootForce,
       this,
       ::std::placeholders::_1,
       ::std::placeholders::_2
@@ -234,7 +235,7 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
       bridge_timer_milliseconds
     ),
     ::std::bind(
-      &UnitreeGo1BridgeNode::bridgeCallback,
+      &UnitreeGo1LowLevelBridgeNode::bridgeCallback,
       this
     )
   );
@@ -243,7 +244,7 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
       sensor_publish_low_rate_timer_milliseconds
     ),
     ::std::bind(
-      &UnitreeGo1BridgeNode::sensorPublishLowRateCallback,
+      &UnitreeGo1LowLevelBridgeNode::sensorPublishLowRateCallback,
       this
     )
   );
@@ -252,18 +253,18 @@ UnitreeGo1BridgeNode::UnitreeGo1BridgeNode(const rclcpp::NodeOptions & node_opti
       sensor_publish_high_rate_timer_milliseconds
     ),
     ::std::bind(
-      &UnitreeGo1BridgeNode::sensorPublishHighRateCallback,
+      &UnitreeGo1LowLevelBridgeNode::sensorPublishHighRateCallback,
       this
     )
   );
 }
 
-UnitreeGo1BridgeNode::~UnitreeGo1BridgeNode()
+UnitreeGo1LowLevelBridgeNode::~UnitreeGo1LowLevelBridgeNode()
 {
   RCLCPP_INFO_STREAM(this->get_logger(), "Finish " << m_this_node_name);
 }
 
-void UnitreeGo1BridgeNode::bridgeCallback()
+void UnitreeGo1LowLevelBridgeNode::bridgeCallback()
 {
   static uint32_t unitree_go1_time_tick = 0;
   std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
@@ -318,7 +319,7 @@ void UnitreeGo1BridgeNode::bridgeCallback()
         joint_trajectory_count++;
         continue;
       }
-      unitree_go1_bridge::ControlCommunicator::MotorCommand motor_command;
+      unitree_go1_bridge::LowLevelControlCommunicator::MotorCommand motor_command;
       unitree_go1_bridge::utility::resetMotorCommand(motor_command);
 
       decltype(auto) joint_config = m_joint_map[joint_name];
@@ -352,28 +353,28 @@ void UnitreeGo1BridgeNode::bridgeCallback()
   m_communicator->send();
 }
 
-void UnitreeGo1BridgeNode::sensorPublishLowRateCallback()
+void UnitreeGo1LowLevelBridgeNode::sensorPublishLowRateCallback()
 {
   std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
   const auto state = m_communicator->getLatestState();
   publishLowRateSensorState(state);
 }
 
-void UnitreeGo1BridgeNode::sensorPublishHighRateCallback()
+void UnitreeGo1LowLevelBridgeNode::sensorPublishHighRateCallback()
 {
   std::lock_guard<std::mutex> calibration_lock{m_calibration_mutex};
   const auto state = m_communicator->getLatestState();
   publishHighRateSensorState(state);
 }
 
-void UnitreeGo1BridgeNode::jointTrajectoryCallback(
+void UnitreeGo1LowLevelBridgeNode::jointTrajectoryCallback(
   const trajectory_msgs::msg::JointTrajectory::SharedPtr joint_trajectory_msg)
 {
   std::lock_guard<std::mutex> lock{m_joint_trajectory_mutex};
   m_joint_trajectory = joint_trajectory_msg;
 }
 
-void UnitreeGo1BridgeNode::calibrateFootForce(
+void UnitreeGo1LowLevelBridgeNode::calibrateFootForce(
   const std_srvs::srv::Empty::Request::SharedPtr,
   std_srvs::srv::Empty::Response::SharedPtr
 )
@@ -416,8 +417,8 @@ void UnitreeGo1BridgeNode::calibrateFootForce(
   m_offset_calibrated = true;
 }
 
-void UnitreeGo1BridgeNode::publishJointState(
-  const unitree_go1_bridge::ControlCommunicator::State & state)
+void UnitreeGo1LowLevelBridgeNode::publishJointState(
+  const unitree_go1_bridge::LowLevelControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
   auto joint_state_msg = std::make_unique<sensor_msgs::msg::JointState>();
@@ -441,8 +442,8 @@ void UnitreeGo1BridgeNode::publishJointState(
   m_joint_state_publisher->publish(std::move(joint_state_msg));
 }
 
-void UnitreeGo1BridgeNode::publishLowRateSensorState(
-  const unitree_go1_bridge::ControlCommunicator::State & state)
+void UnitreeGo1LowLevelBridgeNode::publishLowRateSensorState(
+  const unitree_go1_bridge::LowLevelControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
   if (m_temperatures_publisher && m_params->motor.publish_temperatures) {
@@ -475,8 +476,8 @@ void UnitreeGo1BridgeNode::publishLowRateSensorState(
   }
 }
 
-void UnitreeGo1BridgeNode::publishHighRateSensorState(
-  const unitree_go1_bridge::ControlCommunicator::State & state)
+void UnitreeGo1LowLevelBridgeNode::publishHighRateSensorState(
+  const unitree_go1_bridge::LowLevelControlCommunicator::State & state)
 {
   const auto current_time_stamp = this->get_clock()->now();
   if (m_imu_publisher && m_params->imu.publish_imu) {
@@ -576,7 +577,7 @@ void UnitreeGo1BridgeNode::publishHighRateSensorState(
   }
 }
 
-void UnitreeGo1BridgeNode::initializeJointSymbols()
+void UnitreeGo1LowLevelBridgeNode::initializeJointSymbols()
 {
   m_joint_symbols.clear();
   m_joint_symbols.push_back("fr");
@@ -585,7 +586,7 @@ void UnitreeGo1BridgeNode::initializeJointSymbols()
   m_joint_symbols.push_back("rl");
 }
 
-void UnitreeGo1BridgeNode::initializeJointNames()
+void UnitreeGo1LowLevelBridgeNode::initializeJointNames()
 {
   if (!m_params) {
     throw std::runtime_error("Failed access m_params");
@@ -621,7 +622,7 @@ void setUnitreeGo1MotorParamFromGeneratedParam(
   param.max_velocity = joint_config_param.max_velocity;
 }
 
-void UnitreeGo1BridgeNode::initializeJointMap()
+void UnitreeGo1LowLevelBridgeNode::initializeJointMap()
 {
   if (!m_params) {
     throw std::runtime_error("Failed access m_params");
@@ -690,4 +691,4 @@ void UnitreeGo1BridgeNode::initializeJointMap()
 }
 }  // namespace unitree_go1_bridge
 
-RCLCPP_COMPONENTS_REGISTER_NODE(unitree_go1_bridge::UnitreeGo1BridgeNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(unitree_go1_bridge::UnitreeGo1LowLevelBridgeNode)
