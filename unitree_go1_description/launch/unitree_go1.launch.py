@@ -143,14 +143,16 @@ def generate_launch_nodes():
         )
     }
 
-    gz_version_env_name = 'IGNITION_VERSION'
+    gz_version_env_names = ['IGNITION_VERSION', 'GZ_VERSION']
+    gz_version = ''
     ign_compatible = ''
 
-    if os.getenv(gz_version_env_name) is None:
-        gz_version_env_name = 'GZ_VERSION'
-        if os.getenv(gz_version_env_name) is None:
-            raise KeyError('Please export ' + gz_version_env_name)
-    if os.getenv(gz_version_env_name) == 'garden':
+    for version_env_name in gz_version_env_names:
+        version = os.getenv(version_env_name)
+        if version is not None:
+            gz_version = version
+            break
+    if gz_version == 'garden':
         ign_compatible = 'ign_compatible:=false'
     else:
         ign_compatible = 'ign_compatible:=true'
