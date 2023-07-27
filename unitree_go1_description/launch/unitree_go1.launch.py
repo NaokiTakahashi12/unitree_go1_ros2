@@ -102,7 +102,7 @@ def generate_declare_launch_arguments():
             description='Using real hardware control (boolean)',
         ),
         launch.actions.DeclareLaunchArgument(
-            'ignition_gazebo',
+            'use_gz',
             default_value=['false'],
             description='Using ignition gazebo (boolean)',
         ),
@@ -160,8 +160,8 @@ def generate_launch_nodes():
             'xacro ',
             ' use_real_hardware:=',
             launch.substitutions.LaunchConfiguration('use_real_hardware'),
-            ' ignition_gazebo:=',
-            launch.substitutions.LaunchConfiguration('ignition_gazebo'),
+            ' use_gz:=',
+            launch.substitutions.LaunchConfiguration('use_gz'),
             ' ros2_control_config_file:=',
             launch.substitutions.LaunchConfiguration('ros2_control_config_file'),
             ' ', ign_compatible,
@@ -218,7 +218,7 @@ def generate_launch_nodes():
                     ('joint_states', 'joint_state_broadcaster/joint_states')
                 ],
                 condition=launch.conditions.UnlessCondition(
-                    launch.substitutions.LaunchConfiguration('ignition_gazebo')
+                    launch.substitutions.LaunchConfiguration('use_gz')
                 )
             ),
             launch_ros.actions.Node(
