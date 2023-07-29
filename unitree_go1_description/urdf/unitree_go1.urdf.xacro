@@ -5,7 +5,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="unitree_go1">
   <xacro:arg name="use_gazebo" default="true"/>
   <xacro:arg name="use_ros2_control" default="true"/>
-  <xacro:arg name="ignition_gazebo" default="true"/>
+  <xacro:arg name="use_gz" default="true"/>
   <xacro:arg name="ign_compatible" default="false"/>
   <!-- Enable depth camera simulation for ignition gazebo -->
   <xacro:arg name="enable_sensors_plugin" default="true"/>

@@ -15,7 +15,7 @@
         <!-- TODO Not implemented -->
       </xacro:if>
       <xacro:unless value="$(arg use_real_hardware)">
-        <xacro:if value="$(arg ignition_gazebo)">
+        <xacro:if value="$(arg use_gz)">
           <xacro:unless value="$(arg ign_compatible)">
             <plugin>gz_ros2_control/GazeboSimSystem</plugin>
           </xacro:unless>
@@ -23,7 +23,7 @@
             <plugin>ign_ros2_control/IgnitionSystem</plugin>
           </xacro:if>
         </xacro:if>
-        <xacro:unless value="$(arg ignition_gazebo)">
+        <xacro:unless value="$(arg use_gz)">
           <plugin>fake_components/GenericSystem</plugin>
         </xacro:unless>
       </xacro:unless>

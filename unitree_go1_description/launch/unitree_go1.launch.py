@@ -102,7 +102,7 @@ def generate_declare_launch_arguments():
             description='Using real hardware control (boolean)',
         ),
         launch.actions.DeclareLaunchArgument(
-            'ignition_gazebo',
+            'use_gz',
             default_value=['false'],
             description='Using ignition gazebo (boolean)',
         ),
@@ -143,14 +143,16 @@ def generate_launch_nodes():
         )
     }
 
-    gz_version_env_name = 'IGNITION_VERSION'
+    gz_version_env_names = ['IGNITION_VERSION', 'GZ_VERSION']
+    gz_version = ''
     ign_compatible = ''
 
-    if os.getenv(gz_version_env_name) is None:
-        gz_version_env_name = 'GZ_VERSION'
-        if os.getenv(gz_version_env_name) is None:
-            raise KeyError('Please export ' + gz_version_env_name)
-    if os.getenv(gz_version_env_name) == 'garden':
+    for version_env_name in gz_version_env_names:
+        version = os.getenv(version_env_name)
+        if version is not None:
+            gz_version = version
+            break
+    if gz_version == 'garden':
         ign_compatible = 'ign_compatible:=false'
     else:
         ign_compatible = 'ign_compatible:=true'
@@ -160,8 +162,8 @@ def generate_launch_nodes():
             'xacro ',
             ' use_real_hardware:=',
             launch.substitutions.LaunchConfiguration('use_real_hardware'),
-            ' ignition_gazebo:=',
-            launch.substitutions.LaunchConfiguration('ignition_gazebo'),
+            ' use_gz:=',
+            launch.substitutions.LaunchConfiguration('use_gz'),
             ' ros2_control_config_file:=',
             launch.substitutions.LaunchConfiguration('ros2_control_config_file'),
             ' ', ign_compatible,
@@ -218,7 +220,7 @@ def generate_launch_nodes():
                     ('joint_states', 'joint_state_broadcaster/joint_states')
                 ],
                 condition=launch.conditions.UnlessCondition(
-                    launch.substitutions.LaunchConfiguration('ignition_gazebo')
+                    launch.substitutions.LaunchConfiguration('use_gz')
                 )
             ),
             launch_ros.actions.Node(

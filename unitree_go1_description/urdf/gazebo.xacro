@@ -4,7 +4,7 @@
    - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <gazebo>
-    <xacro:if value="$(arg ignition_gazebo)">
+    <xacro:if value="$(arg use_gz)">
       <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher"/>
       <plugin filename="ignition-gazebo-contact-system" name="ignition::gazebo::systems::Contact"/>
       <plugin filename="ignition-gazebo-forcetorque-system" name="ignition::gazebo::systems::ForceTorque"/>
@@ -13,7 +13,7 @@
         <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors"/>
       </xacro:if>
     </xacro:if>
-    <xacro:unless value="$(arg ignition_gazebo)">
+    <xacro:unless value="$(arg use_gz)">
       <!-- ros_control plugin -->
       <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
         <robotNamespace>/go1_gazebo</robotNamespace>
@@ -50,7 +50,7 @@
       <always_on>true</always_on>
       <update_rate>100</update_rate>
       <visualize>false</visualize>
-      <xacro:unless value="$(arg ignition_gazebo)">
+      <xacro:unless value="$(arg use_gz)">
         <topic>__default_topic__</topic>
         <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
           <topicName>trunk_imu</topicName>
@@ -140,9 +140,9 @@
       <self_collide>
         ${enable_self_collision_check}
       </self_collide>
-      <xacro:if value="$(arg ignition_gazebo)">
+      <xacro:if value="$(arg use_gz)">
       </xacro:if>
-      <xacro:unless value="$(arg ignition_gazebo)">
+      <xacro:unless value="$(arg use_gz)">
       </xacro:unless>
     </gazebo>
     <gazebo reference="${name}_thigh_shoulder">
@@ -157,9 +157,9 @@
       <self_collide>
         ${enable_self_collision_check}
       </self_collide>
-      <xacro:if value="$(arg ignition_gazebo)">
+      <xacro:if value="$(arg use_gz)">
       </xacro:if>
-      <xacro:unless value="$(arg ignition_gazebo)">
+      <xacro:unless value="$(arg use_gz)">
       </xacro:unless>
     </gazebo>
     <gazebo reference="${name}_thigh">
@@ -174,9 +174,9 @@
       <self_collide>
         ${enable_self_collision_check}
       </self_collide>
-      <xacro:if value="$(arg ignition_gazebo)">
+      <xacro:if value="$(arg use_gz)">
       </xacro:if>
-      <xacro:unless value="$(arg ignition_gazebo)">
+      <xacro:unless value="$(arg use_gz)">
       </xacro:unless>
     </gazebo>
     <gazebo reference="${name}_calf">
@@ -196,7 +196,7 @@
         <update_rate>100</update_rate>
         <always_on>true</always_on>
         <visualize>false</visualize>
-        <xacro:unless value="$(arg ignition_gazebo)">
+        <xacro:unless value="$(arg use_gz)">
           <plugin name="contactPlugin" filename="libunitreeFootContactPlugin.so"/>
         </xacro:unless>
         <contact>
@@ -205,9 +205,9 @@
           </collision>
         </contact>
       </sensor>
-      <xacro:if value="$(arg ignition_gazebo)">
+      <xacro:if value="$(arg use_gz)">
       </xacro:if>
-      <xacro:unless value="$(arg ignition_gazebo)">
+      <xacro:unless value="$(arg use_gz)">
       </xacro:unless>
     </gazebo>
     <gazebo reference="${name}_foot">
@@ -222,9 +222,9 @@
       <self_collide>
         ${enable_self_collision_check}
       </self_collide>
-      <xacro:if value="$(arg ignition_gazebo)">
+      <xacro:if value="$(arg use_gz)">
       </xacro:if>
-      <xacro:unless value="$(arg ignition_gazebo)">
+      <xacro:unless value="$(arg use_gz)">
         <!-- Visualization of Foot contacts. -->
         <visual>
           <plugin name="drawForcePlugin" filename="libunitreeDrawForcePlugin.so">
@@ -279,7 +279,7 @@
             <type>gaussian</type>
           </noise>
         </camera>
-        <xacro:unless value="$(arg ignition_gazebo)">
+        <xacro:unless value="$(arg use_gz)">
           <plugin name="camera_${name}_controller" filename="libgazebo_ros_openni_kinect.so">
             <baseline>0.025</baseline>
             <alwaysOn>true</alwaysOn>
