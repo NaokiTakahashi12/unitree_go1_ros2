@@ -70,7 +70,7 @@ def generate_declare_launch_arguments():
             description='Robot model file path (string)'
         ),
         launch.actions.DeclareLaunchArgument(
-            'joint_state_publisher_config_file',
+            'joint_state_merger_config_file',
             default_value=[
                 os.path.join(
                     this_pkg_share_dir,
@@ -193,15 +193,18 @@ def generate_launch_nodes():
                 on_exit=exit_event
             ),
             launch_ros.actions.Node(
-                package='joint_state_publisher',
-                executable='joint_state_publisher',
+                package='joint_state_merger',
+                executable='joint_state_merger_node',
                 name='joint_state_merger',
                 output=output,
                 parameters=[
                     use_sim_time,
                     launch.substitutions.LaunchConfiguration(
-                        'joint_state_publisher_config_file'
+                        'joint_state_merger_config_file'
                     )
+                ],
+                remappings=[
+                    ('~/joint_states', 'joint_states')
                 ],
                 on_exit=exit_event
             ),
