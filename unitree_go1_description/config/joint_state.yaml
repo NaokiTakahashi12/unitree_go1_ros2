@@ -1,22 +1,5 @@
 joint_state_merger:
   ros__parameters:
-    rate: 50
-    ignore_timestamp: false
-    publish_default_efforts: true
-    publish_default_velocities: true
-    publish_default_posiitons: true
-    zeros:
-      FR_hip_joint: -0.369
-      FR_thigh_joint: 1.571
-      FR_calf_joint: -2.735
-      FL_hip_joint: 0.369
-      FL_thigh_joint: 1.571
-      FL_calf_joint: -2.735
-      RR_hip_joint: -0.369
-      RR_thigh_joint: 1.571
-      RR_calf_joint: -2.735
-      RL_hip_joint: 0.369
-      RL_thigh_joint: 1.571
-      RL_calf_joint: -2.735
-    #source_list:
-    #  - joint_state_broadcaster/joint_states
+    publish_frequency: 50.0
+    joint_state_sources:
+      - /joint_state_broadcaster/joint_states
