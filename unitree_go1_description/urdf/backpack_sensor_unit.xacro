@@ -12,19 +12,19 @@
         <mass value="8.767632300488609"/>
         <inertia ixx="0.06126696006101956" ixy="4.711204724242339e-05" ixz="-9.167542969046849e-06" iyy="0.03905584292622434" iyz="-0.0014004731761035145" izz="0.06984351344778704"/>
       </inertial>
-      <xacro:if value="$(arg disable_backpack_collision)">
+      <xacro:if value="$(arg enable_backpack_mesh)">
         <collision name="${name}_battery_collision">
           <geometry>
             <mesh filename="package://unitree_go1_description/meshes/visual/units/jetson_battery_unit.stl" scale="0.001 0.001 0.001"/>
           </geometry>
         </collision>
+        <visual name="${name}_battery_visual">
+          <origin rpy="0.0 0.0 1.5707963" xyz="0.0 0.031 0.0"/>
+          <geometry>
+            <mesh filename="package://unitree_go1_description/meshes/visual/units/jetson_battery_unit.stl" scale="0.001 0.001 0.001"/>
+          </geometry>
+        </visual>
       </xacro:if>
-      <visual name="${name}_battery_visual">
-        <origin rpy="0.0 0.0 1.5707963" xyz="0.0 0.031 0.0"/>
-        <geometry>
-          <mesh filename="package://unitree_go1_description/meshes/visual/units/jetson_battery_unit.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-      </visual>
     </link>
     <joint name="${name}_backpack_base_to_battery_joint" type="fixed">
       <origin rpy="0 0 0" xyz="-0.01 0.0 0.070026"/>
@@ -36,19 +36,19 @@
         <mass value="3.6310263427138576"/>
         <inertia ixx="0.018493836466625727" ixy="3.8771340018012124e-05" ixz="0.00030427183935978963" iyy="0.018520472548910264" iyz="-0.00023373891574015034" izz="0.014387662209449138"/>
       </inertial>
-      <xacro:if value="$(arg disable_backpack_collision)">
+      <xacro:if value="$(arg enable_backpack_mesh)">
         <collision name="${name}_velodyne_mounter_collision">
           <geometry>
             <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_mount.stl" scale="0.001 0.001 0.001"/>
           </geometry>
         </collision>
+        <visual name="${name}_velodyne_mounter_visual">
+          <origin rpy="0.0 0.0 1.5707963" xyz="0.26908 -0.15 -0.1"/>
+          <geometry>
+            <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_mount.stl" scale="0.001 0.001 0.001"/>
+          </geometry>
+        </visual>
       </xacro:if>
-      <visual name="${name}_velodyne_mounter_visual">
-        <origin rpy="0.0 0.0 1.5707963" xyz="0.26908 -0.15 -0.1"/>
-        <geometry>
-          <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_mount.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-      </visual>
     </link>
     <joint name="${name}_backpack_base_to_velodyne_mounter_joint" type="fixed">
       <origin rpy="0 0 0" xyz="0.18092 0.0 0.105"/>
@@ -60,19 +60,19 @@
         <mass value="5.620809494767195"/>
         <inertia ixx="0.03055115239540828" ixy="-8.623613783188977e-08" ixz="-5.321297214757923e-07" iyy="0.007113943066266983" iyz="0.002075435771374896" izz="0.030423249129034515"/>
       </inertial>
-      <xacro:if value="$(arg disable_backpack_collision)">
+      <xacro:if value="$(arg enable_backpack_mesh)">
         <collision name="${name}_velodyne_vlp32c_collision">
           <geometry>
             <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_vlp32c.stl" scale="0.001 0.001 0.001"/>
           </geometry>
         </collision>
+        <visual name="${name}_velodyne_vlp32c_visual">
+          <origin rpy="1.5707963 0.0 3.1415926" xyz="0.0 0.0 -0.0373"/>
+          <geometry>
+            <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_vlp32c.stl" scale="0.001 0.001 0.001"/>
+          </geometry>
+        </visual>
       </xacro:if>
-      <visual name="${name}_velodyne_vlp32c_visual">
-        <origin rpy="1.5707963 0.0 3.1415926" xyz="0.0 0.0 -0.0373"/>
-        <geometry>
-          <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_vlp32c.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-      </visual>
     </link>
     <joint name="${name}_mounter_to_vlp32c_joint" type="fixed">
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0273"/>
@@ -84,19 +84,19 @@
         <mass value="0.2506230664456085"/>
         <inertia ixx="0.0005884168747731849" ixy="2.1746493494845255e-18" ixz="2.761679773755077e-18" iyy="0.0014843471434139303" iyz="1.1641604934681028e-06" izz="0.0009056110680280348"/>
       </inertial>
-      <xacro:if value="$(arg disable_backpack_collision)">
+      <xacro:if value="$(arg enable_backpack_mesh)">
         <collision name="${name}_d455_mounter_backet_collision">
           <geometry>
             <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_d455_mount_bkt.stl" scale="0.001 0.001 0.001"/>
           </geometry>
         </collision>
+        <visual name="${name}_d455_mounter_backet_visual">
+          <origin rpy="0.0 0.0 -1.5707963" xyz="0 0 0"/>
+          <geometry>
+            <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_d455_mount_bkt.stl" scale="0.001 0.001 0.001"/>
+          </geometry>
+        </visual>
       </xacro:if>
-      <visual name="${name}_d455_mounter_backet_visual">
-        <origin rpy="0.0 0.0 -1.5707963" xyz="0 0 0"/>
-        <geometry>
-          <mesh filename="package://unitree_go1_description/meshes/visual/units/velodyne_d455_mount_bkt.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-      </visual>
     </link>
     <joint name="${name}_mounter_to_d455_joint" type="fixed">
       <origin rpy="0 0 0" xyz="0.025365 0.0 0.100"/>
@@ -108,19 +108,19 @@
         <mass value="0.3924756903563825"/>
         <inertia ixx="0.0002316134205913613" ixy="5.5047668617858034e-12" ixz="5.936616526147631e-12" iyy="0.001074683458664822" iyz="6.378256464190031e-05" izz="0.0010780788921107315"/>
       </inertial>
-      <xacro:if value="$(arg disable_backpack_collision)">
+      <xacro:if value="$(arg enable_backpack_mesh)">
         <collision name="${name}_d455_mounter_collision">
           <geometry>
             <mesh filename="package://unitree_go1_description/meshes/visual/units/d455_mount.stl" scale="0.001 0.001 0.001"/>
           </geometry>
         </collision>
+        <visual name="${name}_d455_mounter_visual">
+          <origin rpy="0.0 3.1415926 -1.5707963" xyz="0.015 -0.065 0.0"/>
+          <geometry>
+            <mesh filename="package://unitree_go1_description/meshes/visual/units/d455_mount.stl" scale="0.001 0.001 0.001"/>
+          </geometry>
+        </visual>
       </xacro:if>
-      <visual name="${name}_d455_mounter_visual">
-        <origin rpy="0.0 3.1415926 -1.5707963" xyz="0.015 -0.065 0.0"/>
-        <geometry>
-          <mesh filename="package://unitree_go1_description/meshes/visual/units/d455_mount.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-      </visual>
     </link>
     <joint name="${name}_backet_to_d455_mounter_joint" type="fixed">
       <origin rpy="0 0 0" xyz="0.0 0.0 0.1615"/>
@@ -132,19 +132,19 @@
         <mass value="0.43067862994478956"/>
         <inertia ixx="4.913461807418571e-05" ixy="7.570359531246379e-07" ixz="1.0438218786212872e-08" iyy="0.0005489980557036461" iyz="-2.520957209185326e-07" izz="0.000540422658218877"/>
       </inertial>
-      <xacro:if value="$(arg disable_backpack_collision)">
+      <xacro:if value="$(arg enable_backpack_mesh)">
         <collision name="${name}_d455_collision">
           <geometry>
             <mesh filename="package://unitree_go1_description/meshes/visual/units/d455.stl" scale="0.001 0.001 0.001"/>
           </geometry>
         </collision>
+        <visual name="${name}_d455_visual">
+          <origin rpy="1.5707963 0.0 1.5707963" xyz="0.0 0.0 0.0"/>
+          <geometry>
+            <mesh filename="package://unitree_go1_description/meshes/visual/units/d455.stl" scale="0.001 0.001 0.001"/>
+          </geometry>
+        </visual>
       </xacro:if>
-      <visual name="${name}_d455_visual">
-        <origin rpy="1.5707963 0.0 1.5707963" xyz="0.0 0.0 0.0"/>
-        <geometry>
-          <mesh filename="package://unitree_go1_description/meshes/visual/units/d455.stl" scale="0.001 0.001 0.001"/>
-        </geometry>
-      </visual>
     </link>
     <joint name="${name}_d455_mounter_to_d455_joint" type="fixed">
       <origin rpy="0 0 0" xyz="0.044 0.0 -0.0215"/>
