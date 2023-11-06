@@ -10,6 +10,7 @@
   <!-- Enable depth camera simulation for ignition gazebo -->
   <xacro:arg name="enable_sensors_plugin" default="true"/>
   <xacro:arg name="enable_low_resolution_depth" default="true"/>
+  <xacro:arg name="enable_unitree_depth_camera" default="true"/>
   <xacro:include filename="$(find unitree_go1_description)/urdf/const.xacro"/>
   <xacro:include filename="$(find unitree_go1_description)/urdf/materials.xacro"/>
   <xacro:if value="$(arg use_gazebo)">
