@@ -2,15 +2,17 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<!-- TODO merge unitree_go1.urdf.xacro -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="unitree_go1">
   <xacro:arg name="use_gazebo" default="true"/>
   <xacro:arg name="use_ros2_control" default="true"/>
   <xacro:arg name="use_gz" default="true"/>
   <xacro:arg name="ign_compatible" default="false"/>
   <!-- Enable depth camera simulation for ignition gazebo -->
-  <xacro:arg name="enable_sensors_plugin" default="true"/>
+  <xacro:arg name="enable_sensors_plugin" default="false"/>
   <xacro:arg name="enable_low_resolution_depth" default="true"/>
   <xacro:arg name="enable_unitree_depth_camera" default="true"/>
+  <xacro:arg name="enable_backpack_mesh" default="false"/>
   <xacro:include filename="$(find unitree_go1_description)/urdf/const.xacro"/>
   <xacro:include filename="$(find unitree_go1_description)/urdf/materials.xacro"/>
   <xacro:if value="$(arg use_gazebo)">
@@ -20,6 +22,7 @@
   <xacro:include filename="$(find unitree_go1_description)/urdf/depthCamera.xacro"/>
   <xacro:include filename="$(find unitree_go1_description)/urdf/ultraSound.xacro"/>
   <xacro:include filename="$(find unitree_go1_description)/urdf/ros2_control.xacro"/>
+  <xacro:include filename="$(find unitree_go1_description)/urdf/backpack_sensor_unit.xacro"/>
   <!-- Rollover Protection mode will add an additional stick on the top, use "true" or "false" to switch it. -->
   <xacro:property name="rolloverProtection" value="false"/>
   <!-- Debug mode will hung up the robot, use "true" or "false" to switch it. -->
@@ -158,4 +161,7 @@
   <xacro:ultraSound name="face">
     <origin rpy="0 0 0" xyz="0.2747 0.0 -0.0088"/>
   </xacro:ultraSound>
+  <xacro:backpack_sensor_unit name="tc23" parent="base_link">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </xacro:backpack_sensor_unit>
 </robot>

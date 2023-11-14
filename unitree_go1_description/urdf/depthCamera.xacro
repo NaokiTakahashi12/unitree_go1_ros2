@@ -19,7 +19,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://unitree_go1_description/meshes/depthCamera.dae" scale="1 1 1"/>
+          <mesh filename="package://unitree_go1_description/meshes/visual/depthCamera.dae" scale="1 1 1"/>
         </geometry>
         <material name="black"/>
       </visual>
@@ -36,8 +36,10 @@
     </joint>
     <link name="camera_optical_${name}">
     </link>
-    <xacro:if value="$(arg use_gazebo)">
-      <xacro:depth_camera_gazebo_configulation name="${name}"/>
+    <xacro:if value="$(arg enable_unitree_depth_camera)">
+      <xacro:if value="$(arg use_gazebo)">
+        <xacro:depth_camera_gazebo_configulation name="${name}"/>
+      </xacro:if>
     </xacro:if>
   </xacro:macro>
 </robot>
