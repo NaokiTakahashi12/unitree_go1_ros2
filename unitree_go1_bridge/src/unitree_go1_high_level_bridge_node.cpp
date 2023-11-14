@@ -47,6 +47,7 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 #include <legged_motion_msgs/msg/temperatures.hpp>
 
 #include <std_srvs/srv/empty.hpp>
@@ -89,10 +90,14 @@ private:
 
   std::mutex m_calibration_mutex;
   std::mutex m_debug_joy_mutex;
+  std::mutex m_emg_joy_mutex;
+  std::mutex m_cmd_vel_mutex;
 
   std::unique_ptr<unitree_go1_bridge::HighLevelControlCommunicator> m_communicator;
 
   sensor_msgs::msg::Joy::ConstSharedPtr m_debug_joy;
+  sensor_msgs::msg::Joy::ConstSharedPtr m_emg_joy;
+  geometry_msgs::msg::Twist::ConstSharedPtr m_cmd_vel;
 
   std::shared_ptr<unitree_go1_bridge_node::ParamListener> m_param_listener;
   std::unique_ptr<unitree_go1_bridge_node::Params> m_params;
@@ -106,6 +111,8 @@ private:
     m_force_sensor_publishers;
 
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr m_debug_joy_subscriber;
+  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr m_emg_joy_subscriber;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr m_cmd_vel_subscriber;
 
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr m_do_foot_force_calibration_service;
 
@@ -119,6 +126,8 @@ private:
   void sensorPublishHighRateCallback();
 
   void debugJoyCallback(const sensor_msgs::msg::Joy::SharedPtr);
+  void emgJoyCallback(const sensor_msgs::msg::Joy::SharedPtr);
+  void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr);
 
   void calibrateFootForce(
     const std_srvs::srv::Empty::Request::SharedPtr,
@@ -161,6 +170,24 @@ UnitreeGo1HighLevelBridgeNode::UnitreeGo1HighLevelBridgeNode(
     rclcpp::QoS(3),
     ::std::bind(
       &UnitreeGo1HighLevelBridgeNode::debugJoyCallback,
+      this,
+      ::std::placeholders::_1
+    )
+  );
+  m_emg_joy_subscriber = this->create_subscription<sensor_msgs::msg::Joy>(
+    "~/emg_joy",
+    rclcpp::QoS(3),
+    ::std::bind(
+      &UnitreeGo1HighLevelBridgeNode::emgJoyCallback,
+      this,
+      ::std::placeholders::_1
+    )
+  );
+  m_cmd_vel_subscriber = this->create_subscription<geometry_msgs::msg::Twist>(
+    "~/cmd_vel",
+    rclcpp::QoS(1),
+    ::std::bind(
+      &UnitreeGo1HighLevelBridgeNode::cmdVelCallback,
       this,
       ::std::placeholders::_1
     )
@@ -274,21 +301,30 @@ void UnitreeGo1HighLevelBridgeNode::bridgeCallback()
   // @todo failed communication guard
   publishJointState(state);
   {
-    if (m_params->enable_debug_joy && m_debug_joy) {
+    bool move_enabled = false;
+
+    std::lock_guard<std::mutex> debug_joy_lock{m_debug_joy_mutex};
+    std::lock_guard<std::mutex> emg_joy_lock{m_emg_joy_mutex};
+
+    if (not m_emg_joy) {
+      move_enabled = false;
+    }
+    else if (m_emg_joy->buttons[0] == 1) {
+      // to damping mode
+      m_communicator->command().mode = 7;
+      m_communicator->command().gaitType = 0;
+      move_enabled = false;
+    }
+    else if (m_params->enable_debug_joy && m_debug_joy) {
       constexpr float euler_angle_scale = 0.17;
       constexpr float anguler_velocity_scale = 0.01;
       constexpr float linear_velocity_scale = 0.2;
-
-      std::lock_guard<std::mutex> debug_joy_lock{m_debug_joy_mutex};
 
       const bool enable_command = m_debug_joy->buttons[1] == 1;
       const bool enable_stand_down = m_debug_joy->buttons[2] == 1;
       const bool enable_stand_up = m_debug_joy->buttons[3] == 1;
       const bool enable_damping_state = m_debug_joy->buttons[0] == 1;
       const float euler_angle_pitch = m_debug_joy->axes[4] * euler_angle_scale;
-      const float anguler_velocity = m_debug_joy->axes[3] * anguler_velocity_scale;
-      const float velocity_x = m_debug_joy->axes[1] * linear_velocity_scale;
-      const float velocity_y = m_debug_joy->axes[0] * linear_velocity_scale;
 
       if (enable_damping_state) {
         m_communicator->command().mode = 7;
@@ -305,15 +341,22 @@ void UnitreeGo1HighLevelBridgeNode::bridgeCallback()
         m_communicator->command().bodyHeight = 0.1;
         m_communicator->command().euler[1] = euler_angle_pitch;
         m_communicator->command().euler[1] = 0.0;
-        m_communicator->command().yawSpeed = anguler_velocity;
-        m_communicator->command().velocity[0] = velocity_x;
-        m_communicator->command().velocity[1] = velocity_y;
+        move_enabled = true;
       } else {
         m_communicator->command().mode = 0;
         m_communicator->command().gaitType = 0;
       }
+
+      if (move_enabled && m_cmd_vel) {
+        m_communicator->command().yawSpeed = m_cmd_vel->angular.z * anguler_velocity_scale;
+        m_communicator->command().velocity[0] = m_cmd_vel->linear.x * linear_velocity_scale;
+        m_communicator->command().velocity[1] = m_cmd_vel->linear.y * linear_velocity_scale;
+      }
+      else {
+        m_communicator->command().velocity[0] = 0;
+        m_communicator->command().velocity[1] = 0;
+      }
     }
-    // @todo Command velocity
   }
   m_communicator->send();
 }
@@ -338,6 +381,20 @@ void UnitreeGo1HighLevelBridgeNode::debugJoyCallback(const sensor_msgs::msg::Joy
     std::lock_guard<std::mutex> lock{m_debug_joy_mutex};
     m_debug_joy = msg;
   }
+}
+
+void UnitreeGo1HighLevelBridgeNode::emgJoyCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
+{
+  if (m_params->enable_debug_joy) {
+    std::lock_guard<std::mutex> lock{m_emg_joy_mutex};
+    m_emg_joy = msg;
+  }
+}
+
+void UnitreeGo1HighLevelBridgeNode::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
+{
+  std::lock_guard<std::mutex> lock{m_cmd_vel_mutex};
+  m_cmd_vel = msg;
 }
 
 void UnitreeGo1HighLevelBridgeNode::calibrateFootForce(
