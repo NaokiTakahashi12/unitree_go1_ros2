@@ -226,24 +226,29 @@ def generate_launch_nodes():
                     launch.substitutions.LaunchConfiguration('use_gz')
                 )
             ),
-            launch_ros.actions.Node(
-                package='controller_manager',
-                executable='spawner',
-                output=output,
-                arguments=[
-                    'joint_state_broadcaster',
-                    '--controller-manager',
-                    'controller_manager'
-                ]
-            ),
-            launch_ros.actions.Node(
-                package='controller_manager',
-                executable='spawner',
-                output=output,
-                arguments=[
-                    'joint_trajectory_controller',
-                    '--controller-manager',
-                    'controller_manager'
+            launch.actions.TimerAction(
+                period=1.0,
+                actions=[
+                    launch_ros.actions.Node(
+                        package='controller_manager',
+                        executable='spawner',
+                        output=output,
+                        arguments=[
+                            'joint_state_broadcaster',
+                            '--controller-manager',
+                            'controller_manager'
+                        ]
+                    ),
+                    launch_ros.actions.Node(
+                        package='controller_manager',
+                        executable='spawner',
+                        output=output,
+                        arguments=[
+                            'joint_trajectory_controller',
+                            '--controller-manager',
+                            'controller_manager'
+                        ]
+                    ),
                 ]
             ),
             launch_ros.actions.Node(
