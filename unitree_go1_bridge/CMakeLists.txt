@@ -6,12 +6,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-find_package(UnitreeLeggedSDK REQUIRED)
-
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
 
 ament_auto_find_build_dependencies()
+find_package(UnitreeLeggedSDK REQUIRED)
 
 generate_parameter_library(unitree_go1_bridge_node_parameters
   src/unitree_go1_bridge_node_parameters.yaml
