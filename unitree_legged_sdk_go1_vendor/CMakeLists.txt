@@ -13,7 +13,9 @@ find_package(ament_cmake REQUIRED)
 
 find_package(UnitreeLeggedSDK QUIET)
 
-if(NOT UnitreeLeggedSDK_FOUND)
+if(UnitreeLeggedSDK_FOUND AND UnitreeLeggedSDK_INCLUDE_DIR AND UnitreeLeggedSDK_LIBRARY)
+  message(STATUS "Ignore build unitree_legged_sdk")
+else()
   set(unitree_legged_sdk_version 3.8.0)
   set(unitree_legged_sdk_install_dir "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-install")
   set(extra_cmake_args)
@@ -30,7 +32,7 @@ if(NOT UnitreeLeggedSDK_FOUND)
     DESTINATION ${CMAKE_INSTALL_PREFIX}
     USE_SOURCE_PERMISSIONS
   )
-endif(NOT UnitreeLeggedSDK_FOUND)
+endif()
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
