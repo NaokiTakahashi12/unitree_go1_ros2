@@ -161,7 +161,4 @@
   <xacro:ultraSound name="face">
     <origin rpy="0 0 0" xyz="0.2747 0.0 -0.0088"/>
   </xacro:ultraSound>
-  <xacro:backpack_sensor_unit name="tc23" parent="base_link">
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-  </xacro:backpack_sensor_unit>
 </robot>

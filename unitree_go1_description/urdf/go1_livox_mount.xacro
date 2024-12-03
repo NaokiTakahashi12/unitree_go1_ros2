@@ -1,34 +1,6 @@
 <?xml version="1.0" ?>
 <robot name="go1_livox_mount" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-<!--
-<xacro:include filename="$(find unitree_go1_description_description)/urdf/materials.xacro" />
-<xacro:include filename="$(find unitree_go1_description_description)/urdf/Go1_livox_mouont.trans" />
-<xacro:include filename="$(find unitree_go1_description_description)/urdf/Go1_livox_mouont.gazebo" />
--->
-
-<!--
-<link name="base_link">
-  <inertial>
-    <origin xyz="-0.000795843710238667 -0.0017600633360694503 0.026855412423998835" rpy="0 0 0"/>
-    <mass value="19.412938243918365"/>
-    <inertia ixx="0.055081" iyy="0.111616" izz="0.157" ixy="0.001148" iyz="-0.000287" ixz="0.000258"/>
-  </inertial>
-  <visual>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="file://$(find unitree_go1_description_description)/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
-    </geometry>
-    <material name="silver"/>
-  </visual>
-  <collision>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry>
-      <mesh filename="file://$(find unitree_go1_description_description)/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
-    </geometry>
-  </collision>
-</link>
--->
 
 <link name="sensor_mount_link">
   <inertial>
@@ -39,14 +11,14 @@
   <visual>
     <origin xyz="-0.044 0 -0.057" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="file://$(find unitree_go1_description_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.044 0 -0.057" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="file://$(find unitree_go1_description_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -68,8 +40,8 @@
 <joint name="mount_to_mid360_joint" type="fixed">
   <origin xyz="0 0 0.170" rpy="3.1415926 0 0"/>
   <parent link="sensor_mount_link"/>
-  <child link="mid360_link"/>
+  <child link="livox_frame"/>
 </joint>
-<link name="mid360_link"/>
+<link name="livox_frame"/>
 
 </robot>
