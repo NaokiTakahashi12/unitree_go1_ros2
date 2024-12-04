@@ -30,12 +30,12 @@
   <child link="sensor_mount_link"/>
 </joint>
 
-<joint name="mount_to_imu_joint" type="fixed">
+<joint name="mount_to_witmotion_joint" type="fixed">
   <origin xyz="0 0 0.105" rpy="0 0 0"/>
   <parent link="sensor_mount_link"/>
-  <child link="imu_link"/>
+  <child link="witmotion_imu_link"/>
 </joint>
-<link name="imu_link"/>
+<link name="witmotion_imu_link"/>
 
 <joint name="mount_to_mid360_joint" type="fixed">
   <origin xyz="0 0 0.170" rpy="3.1415926 0 0"/>
