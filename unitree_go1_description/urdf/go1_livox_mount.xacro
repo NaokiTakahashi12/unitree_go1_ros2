@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<robot name="go1_livox_mount" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+
+<link name="sensor_mount_link">
+  <inertial>
+    <origin xyz="-0.07621509091311213 0.04749999999620971 0.08316974175199165" rpy="0 0 0"/>
+    <mass value="0.28041039407260565"/>
+    <inertia ixx="0.002778" iyy="0.002749" izz="0.001553" ixy="0.0" iyz="0.0" ixz="-0.00024"/>
+  </inertial>
+  <visual>
+    <origin xyz="-0.044 0 -0.057" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="-0.044 0 -0.057" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+
+<joint name="base_to_mount_rail_joint" type="fixed">
+  <origin xyz="0.044 0 0.057" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="sensor_mount_link"/>
+</joint>
+
+<joint name="mount_to_witmotion_joint" type="fixed">
+  <origin xyz="0 0 0.105" rpy="0 0 0"/>
+  <parent link="sensor_mount_link"/>
+  <child link="witmotion_imu_link"/>
+</joint>
+<link name="witmotion_imu_link"/>
+
+<joint name="mount_to_mid360_joint" type="fixed">
+  <origin xyz="0 0 0.170" rpy="3.1415926 0 0"/>
+  <parent link="sensor_mount_link"/>
+  <child link="livox_frame"/>
+</joint>
+<link name="livox_frame"/>
+
+</robot>
