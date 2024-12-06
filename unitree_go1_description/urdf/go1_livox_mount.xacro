@@ -18,7 +18,7 @@
   <collision>
     <origin xyz="-0.044 0 -0.057" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount_for_collision.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
