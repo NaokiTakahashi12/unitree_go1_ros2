@@ -9,16 +9,16 @@
     <inertia ixx="0.002778" iyy="0.002749" izz="0.001553" ixy="0.0" iyz="0.0" ixz="-0.00024"/>
   </inertial>
   <visual>
-    <origin xyz="-0.044 0 -0.057" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount.dae" scale="1 1 1"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
-    <origin xyz="-0.044 0 -0.057" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="file://$(find unitree_go1_description)/meshes/visual/units/sensor_mount_for_collision.stl" scale="1 1 1"/>
     </geometry>
   </collision>
 </link>
